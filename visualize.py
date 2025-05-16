@@ -14,7 +14,7 @@ from src.game.card import CardDeck, create_sample_cards
 from src.game.player import Player, AIPlayer
 import random
 
-def run_game_recording(player1_type="ai", player2_type="ai", turns=100, difficulty=1):
+def run_game_recording(player1_type="ai", player2_type="ai", turns=100, difficulty=1, seed=None):
     """
     Run a game without visualization and record it as a replay.
     
@@ -23,10 +23,15 @@ def run_game_recording(player1_type="ai", player2_type="ai", turns=100, difficul
         player2_type: Type of player 2 ("human" or "ai")
         turns: Maximum number of turns
         difficulty: AI difficulty level (1-3)
+        seed: Random seed for reproducibility (optional)
         
     Returns:
         Path to the saved replay file
     """
+    # Set random seed if provided
+    if seed is not None:
+        random.seed(seed)
+    
     # Initialize game environment
     game_env = GameEnvironment(grid_size=10)
     
@@ -61,6 +66,8 @@ def run_game_recording(player1_type="ai", player2_type="ai", turns=100, difficul
     recorder.add_metadata("difficulty", difficulty)
     recorder.add_metadata("player1_cards", [str(card) for card in player1_deck])
     recorder.add_metadata("player2_cards", [str(card) for card in player2_deck])
+    if seed is not None:
+        recorder.add_metadata("seed", seed)
     
     # Main game loop
     for turn in range(1, turns + 1):
@@ -91,6 +98,37 @@ def run_game_recording(player1_type="ai", player2_type="ai", turns=100, difficul
     # Save the replay
     return recorder.save()
 
+def generate_batch_replays(count, player1_type="ai", player2_type="ai", turns=100, difficulty=1):
+    """
+    Generate multiple game replays.
+    
+    Args:
+        count: Number of replays to generate
+        player1_type: Type of player 1 ("human" or "ai")
+        player2_type: Type of player 2 ("human" or "ai")
+        turns: Maximum number of turns
+        difficulty: AI difficulty level (1-3)
+        
+    Returns:
+        List of paths to saved replay files
+    """
+    replay_paths = []
+    
+    print(f"Generating {count} replays...")
+    for i in range(count):
+        # Use the index as a seed for reproducibility
+        replay_path = run_game_recording(
+            player1_type=player1_type,
+            player2_type=player2_type,
+            turns=turns,
+            difficulty=difficulty,
+            seed=i
+        )
+        replay_paths.append(replay_path)
+        print(f"Generated replay {i+1}/{count}: {os.path.basename(replay_path)}")
+    
+    return replay_paths
+
 def main():
     """Run the visualization or recording with default settings."""
     # Check if matplotlib is available
@@ -110,7 +148,8 @@ def main():
         "difficulty": 1,
         "use_ascii": True,
         "use_matplotlib": has_matplotlib,
-        "record": False
+        "record": False,
+        "count": 1
     }
     
     # Parse command-line arguments
@@ -122,6 +161,17 @@ def main():
         
         if arg == "--record":
             settings["record"] = True
+        elif arg == "--count" and i + 1 < len(args):
+            try:
+                count = int(args[i+1])
+                if count < 1:
+                    print(f"Error: Count must be at least 1, not {count}")
+                    return 1
+                settings["count"] = count
+                i += 1
+            except ValueError:
+                print(f"Error: Invalid count value: {args[i+1]}")
+                return 1
         elif arg == "--ascii-only":
             settings["use_matplotlib"] = False
         elif arg == "--plot-only":
@@ -188,14 +238,23 @@ def main():
         print(f"Max turns: {settings['turns']}")
         print()
         
-        replay_path = run_game_recording(
-            player1_type=settings["player1_type"],
-            player2_type=settings["player2_type"],
-            turns=settings["turns"],
-            difficulty=settings["difficulty"]
-        )
-        
-        print(f"Game completed! Replay saved to: {replay_path}")
+        if settings["count"] > 1:
+            replay_paths = generate_batch_replays(
+                count=settings["count"],
+                player1_type=settings["player1_type"],
+                player2_type=settings["player2_type"],
+                turns=settings["turns"],
+                difficulty=settings["difficulty"]
+            )
+            print(f"\nGenerated {len(replay_paths)} replays in the 'replays' directory")
+        else:
+            replay_path = run_game_recording(
+                player1_type=settings["player1_type"],
+                player2_type=settings["player2_type"],
+                turns=settings["turns"],
+                difficulty=settings["difficulty"]
+            )
+            print(f"Game completed! Replay saved to: {replay_path}")
     else:
         # Run visualization
         print("Starting Clash Royale Prototype Visualization...")
@@ -231,6 +290,7 @@ Usage: python visualize.py [options]
 
 Options:
   --record             Run game without visualization and save as replay
+  --count VALUE        Number of replays to generate (default: 1)
   --ascii-only         Use only ASCII visualization (default if matplotlib not available)
   --plot-only          Use only graphical (matplotlib) visualization
   --both               Use both ASCII and graphical visualization (default)
@@ -240,6 +300,16 @@ Options:
   --player1 TYPE       Set player 1 type (human or ai, default: ai)
   --player2 TYPE       Set player 2 type (human or ai, default: ai)
   --help, -h           Show this help message and exit
+
+Examples:
+  # Generate a single replay
+  python visualize.py --record --difficulty 1
+
+  # Generate 10 replays with different random seeds
+  python visualize.py --record --count 10 --difficulty 1
+
+  # Run a visualized game
+  python visualize.py --both --delay 1.0
 """)
 
 
