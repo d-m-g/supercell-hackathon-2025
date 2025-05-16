@@ -2,15 +2,97 @@
 """
 Clash Royale Prototype Visualization Runner
 
-This script provides a convenient way to run the game visualization.
+This script provides a convenient way to run the game visualization or record replays.
 """
 
 import sys
 import os
 from src.visualize_game import run_visualization
+from src.replay.recorder import ReplayRecorder
+from src.game.environment import GameEnvironment
+from src.game.card import CardDeck, create_sample_cards
+from src.game.player import Player, AIPlayer
+import random
+
+def run_game_recording(player1_type="ai", player2_type="ai", turns=100, difficulty=1):
+    """
+    Run a game without visualization and record it as a replay.
+    
+    Args:
+        player1_type: Type of player 1 ("human" or "ai")
+        player2_type: Type of player 2 ("human" or "ai")
+        turns: Maximum number of turns
+        difficulty: AI difficulty level (1-3)
+        
+    Returns:
+        Path to the saved replay file
+    """
+    # Initialize game environment
+    game_env = GameEnvironment(grid_size=10)
+    
+    # Create and shuffle card decks
+    sample_cards = create_sample_cards()
+    random.shuffle(sample_cards)
+    
+    # Split cards evenly between players
+    half = len(sample_cards) // 2
+    player1_cards = sample_cards[:half]
+    player2_cards = sample_cards[half:]
+    
+    # Create player decks
+    player1_deck = CardDeck(player1_cards)
+    player2_deck = CardDeck(player2_cards)
+    
+    # Create players based on type
+    if player1_type.lower() == "ai":
+        player1 = AIPlayer(1, player1_deck, difficulty=difficulty)
+    else:
+        player1 = Player(1, player1_deck)
+    
+    if player2_type.lower() == "ai":
+        player2 = AIPlayer(2, player2_deck, difficulty=difficulty)
+    else:
+        player2 = Player(2, player2_deck)
+    
+    # Initialize replay recorder
+    recorder = ReplayRecorder()
+    recorder.add_metadata("player1_type", player1_type)
+    recorder.add_metadata("player2_type", player2_type)
+    recorder.add_metadata("difficulty", difficulty)
+    recorder.add_metadata("player1_cards", [str(card) for card in player1_deck])
+    recorder.add_metadata("player2_cards", [str(card) for card in player2_deck])
+    
+    # Main game loop
+    for turn in range(1, turns + 1):
+        # PHASE 1: Movement
+        game_env._process_movements()
+        
+        # PHASE 2: Unit Placement
+        if isinstance(player1, AIPlayer):
+            player1.make_move(game_env)
+        if isinstance(player2, AIPlayer):
+            player2.make_move(game_env)
+        
+        # PHASE 3: Attacks
+        game_env._process_attacks()
+        game_env._check_win_conditions()
+        
+        # Generate elixir
+        player1.generate_elixir()
+        player2.generate_elixir()
+        
+        # Record game state
+        recorder.record_state(game_env._get_state())
+        
+        # Check if game is over
+        if game_env.game_over:
+            break
+    
+    # Save the replay
+    return recorder.save()
 
 def main():
-    """Run the visualization with default settings."""
+    """Run the visualization or recording with default settings."""
     # Check if matplotlib is available
     try:
         import matplotlib
@@ -27,7 +109,8 @@ def main():
         "turns": 100,
         "difficulty": 1,
         "use_ascii": True,
-        "use_matplotlib": has_matplotlib
+        "use_matplotlib": has_matplotlib,
+        "record": False
     }
     
     # Parse command-line arguments
@@ -37,7 +120,9 @@ def main():
     while i < len(args):
         arg = args[i]
         
-        if arg == "--ascii-only":
+        if arg == "--record":
+            settings["record"] = True
+        elif arg == "--ascii-only":
             settings["use_matplotlib"] = False
         elif arg == "--plot-only":
             settings["use_ascii"] = False
@@ -94,27 +179,45 @@ def main():
             
         i += 1
     
-    # Run the visualization
-    print("Starting Clash Royale Prototype Visualization...")
-    print(f"Player 1: {settings['player1_type'].upper()}")
-    print(f"Player 2: {settings['player2_type'].upper()}")
-    print(f"Difficulty: {settings['difficulty']}")
-    print(f"Visualization: {'ASCII' if settings['use_ascii'] else ''}{' and ' if settings['use_ascii'] and settings['use_matplotlib'] else ''}{'Graphical' if settings['use_matplotlib'] else ''}")
-    print(f"Delay: {settings['delay']} seconds")
-    print(f"Max turns: {settings['turns']}")
-    print()
-    print("Press Ctrl+C to stop the visualization at any time.")
-    print()
-    
-    run_visualization(
-        player1_type=settings["player1_type"],
-        player2_type=settings["player2_type"],
-        delay=settings["delay"],
-        turns=settings["turns"],
-        difficulty=settings["difficulty"],
-        use_ascii=settings["use_ascii"],
-        use_matplotlib=settings["use_matplotlib"]
-    )
+    if settings["record"]:
+        # Run game recording
+        print("Starting Clash Royale Prototype Recording...")
+        print(f"Player 1: {settings['player1_type'].upper()}")
+        print(f"Player 2: {settings['player2_type'].upper()}")
+        print(f"Difficulty: {settings['difficulty']}")
+        print(f"Max turns: {settings['turns']}")
+        print()
+        
+        replay_path = run_game_recording(
+            player1_type=settings["player1_type"],
+            player2_type=settings["player2_type"],
+            turns=settings["turns"],
+            difficulty=settings["difficulty"]
+        )
+        
+        print(f"Game completed! Replay saved to: {replay_path}")
+    else:
+        # Run visualization
+        print("Starting Clash Royale Prototype Visualization...")
+        print(f"Player 1: {settings['player1_type'].upper()}")
+        print(f"Player 2: {settings['player2_type'].upper()}")
+        print(f"Difficulty: {settings['difficulty']}")
+        print(f"Visualization: {'ASCII' if settings['use_ascii'] else ''}{' and ' if settings['use_ascii'] and settings['use_matplotlib'] else ''}{'Graphical' if settings['use_matplotlib'] else ''}")
+        print(f"Delay: {settings['delay']} seconds")
+        print(f"Max turns: {settings['turns']}")
+        print()
+        print("Press Ctrl+C to stop the visualization at any time.")
+        print()
+        
+        run_visualization(
+            player1_type=settings["player1_type"],
+            player2_type=settings["player2_type"],
+            delay=settings["delay"],
+            turns=settings["turns"],
+            difficulty=settings["difficulty"],
+            use_ascii=settings["use_ascii"],
+            use_matplotlib=settings["use_matplotlib"]
+        )
     
     return 0
 
@@ -122,11 +225,12 @@ def main():
 def print_help():
     """Print help information."""
     print("""
-Clash Royale Prototype Visualization
+Clash Royale Prototype Visualization/Recording
 
 Usage: python visualize.py [options]
 
 Options:
+  --record             Run game without visualization and save as replay
   --ascii-only         Use only ASCII visualization (default if matplotlib not available)
   --plot-only          Use only graphical (matplotlib) visualization
   --both               Use both ASCII and graphical visualization (default)
