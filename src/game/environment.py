@@ -48,13 +48,17 @@ class GameEnvironment:
         if self.grid[position] != 0:
             return False
         
-        # Player 1 can only place cards on their half (left side)
-        if player_id == 1 and position > self.grid_size // 2:
-            return False
-        
-        # Player 2 can only place cards on their half (right side)
-        if player_id == 2 and position < self.grid_size // 2:
-            return False
+        # NEW RULE: Units can only be placed 1 or 2 blocks from their tower
+        if player_id == 1:
+            # Player 1's tower is at position 0
+            # Valid positions are 1 and 2
+            if position not in [1, 2]:
+                return False
+        else:  # player_id == 2
+            # Player 2's tower is at position grid_size-1
+            # Valid positions are grid_size-2 and grid_size-3
+            if position not in [self.grid_size-2, self.grid_size-3]:
+                return False
         
         return True
     
@@ -74,11 +78,20 @@ class GameEnvironment:
     
     def _process_movements(self):
         """Move all units according to their movement rules."""
-        # Sort units by position to prevent movement conflicts
-        units_to_move = sorted(
-            [(unit_id, data) for unit_id, data in self.units.items()],
-            key=lambda x: x[1]['position']
-        )
+        # Sort units by position to prevent movement conflicts - but in different orders
+        # for different players to prevent gridlock
+        units_to_move = []
+        
+        # Player 1 units move from left to right, so sort them by ascending position
+        player1_units = [(unit_id, data) for unit_id, data in self.units.items() if data['owner'] == 1]
+        player1_units.sort(key=lambda x: x[1]['position'])
+        
+        # Player 2 units move from right to left, so sort them by descending position
+        player2_units = [(unit_id, data) for unit_id, data in self.units.items() if data['owner'] == 2]
+        player2_units.sort(key=lambda x: x[1]['position'], reverse=True)
+        
+        # Combine sorted units
+        units_to_move = player1_units + player2_units
         
         for unit_id, unit_data in units_to_move:
             # Skip if unit was destroyed during this turn
@@ -89,6 +102,8 @@ class GameEnvironment:
             owner = unit_data['owner']
             
             # Determine movement direction based on owner
+            # Player 1 units move right (increasing position)
+            # Player 2 units move left (decreasing position)
             direction = 1 if owner == 1 else -1
             new_position = position + direction
             
