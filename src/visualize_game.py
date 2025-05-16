@@ -202,17 +202,17 @@ class GameVisualizer:
             plt.close(self.fig)
 
 
-def run_visualization(player1_type="ai", player2_type="ai", delay=0.5, turns=100, 
-                     difficulty=2, use_ascii=True, use_matplotlib=False):
+def run_visualization(player1_type="ai", player2_type="ai", delay=2.0, turns=100, 
+                     difficulty=1, use_ascii=True, use_matplotlib=False):
     """
     Run a visualization of the game.
     
     Args:
         player1_type: Type of player 1 ("human" or "ai")
         player2_type: Type of player 2 ("human" or "ai")
-        delay: Delay between turns in seconds
+        delay: Delay between turns in seconds (default: 2.0)
         turns: Maximum number of turns
-        difficulty: AI difficulty level
+        difficulty: AI difficulty level (default: 1)
         use_ascii: Whether to use ASCII visualization
         use_matplotlib: Whether to use matplotlib visualization
     """
@@ -294,12 +294,12 @@ def main():
                        help="Player 1 type (default: ai)")
     parser.add_argument("--player2", choices=["human", "ai"], default="ai", 
                        help="Player 2 type (default: ai)")
-    parser.add_argument("--delay", type=float, default=0.5, 
-                       help="Delay between turns in seconds (default: 0.5)")
+    parser.add_argument("--delay", type=float, default=2.0, 
+                       help="Delay between turns in seconds (default: 2.0)")
     parser.add_argument("--turns", type=int, default=100, 
                        help="Maximum number of turns (default: 100)")
-    parser.add_argument("--difficulty", type=int, choices=[1, 2, 3], default=2, 
-                       help="AI difficulty (1: Easy, 2: Medium, 3: Hard, default: 2)")
+    parser.add_argument("--difficulty", type=int, choices=[1, 2, 3], default=1, 
+                       help="AI difficulty (1: Easy, 2: Medium, 3: Hard, default: 1)")
     parser.add_argument("--ascii", action="store_true", default=True,
                        help="Use ASCII visualization (default: True)")
     parser.add_argument("--plot", action="store_true", default=False,
