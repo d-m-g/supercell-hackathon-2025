@@ -265,6 +265,8 @@ class GameEnvironment:
             'grid': self.grid.copy(),
             'units': {uid: {
                 'position': data['position'],
+                'card_name': data['card'].name,
+                'card_cost': data['card'].cost,
                 'hp': data['card'].hp,
                 'attack': data['card'].attack,
                 'owner': data['owner'],
