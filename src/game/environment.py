@@ -103,10 +103,16 @@ class GameEnvironment:
     
     def _process_attacks(self):
         """Process attacks for all units."""
-        for unit_id, unit_data in list(self.units.items()):
+        # Make a copy of the units to avoid modification during iteration
+        units_to_process = list(self.units.items())
+        
+        for unit_id, unit_data in units_to_process:
+            # Skip if unit was destroyed during this turn
+            if unit_id not in self.units:
+                continue
+                
             position = unit_data['position']
             owner = unit_data['owner']
-            card = unit_data['card']
             
             # Determine attack direction and target position
             direction = 1 if owner == 1 else -1
@@ -126,11 +132,15 @@ class GameEnvironment:
                         # Player 1 wins if they damage player 2's tower
                         self.game_over = True
                         self.winner = 1
-                    elif isinstance(target, int):  # Target is a unit
+                    elif isinstance(target, int) and target in self.units:  # Target is a valid unit
                         self._attack_unit(unit_id, target)
     
     def _attack_unit(self, attacker_id, defender_id):
         """Process an attack between two units."""
+        # Verify both units still exist
+        if attacker_id not in self.units or defender_id not in self.units:
+            return
+            
         attacker = self.units[attacker_id]['card']
         defender = self.units[defender_id]['card']
         
