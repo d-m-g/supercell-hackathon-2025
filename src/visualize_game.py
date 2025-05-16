@@ -85,8 +85,25 @@ class GameVisualizer:
         
         # Print turn information
         print(f"Turn: {game_env.turn_count}")
-        print(f"Player 1 Elixir: {player1.elixir}/{player1.max_elixir}")
-        print(f"Player 2 Elixir: {player2.elixir}/{player2.max_elixir}")
+        
+        # Count units for each player
+        p1_units = sum(1 for unit in game_env.units.values() if unit['owner'] == 1)
+        p2_units = sum(1 for unit in game_env.units.values() if unit['owner'] == 2)
+        
+        print(f"Player 1 Elixir: {player1.elixir}/{player1.max_elixir} (Units: {p1_units}/{player1.max_units})")
+        print(f"Player 2 Elixir: {player2.elixir}/{player2.max_elixir} (Units: {p2_units}/{player2.max_units})")
+        
+        # Show last played cards
+        if player1.last_played_card:
+            print(f"Player 1 last played: {player1.last_played_card.name} (can't play again this turn)")
+        else:
+            print("Player 1 last played: None")
+            
+        if player2.last_played_card:
+            print(f"Player 2 last played: {player2.last_played_card.name} (can't play again this turn)")
+        else:
+            print("Player 2 last played: None")
+            
         print()
         
         # Print the grid
@@ -103,10 +120,12 @@ class GameVisualizer:
                 # It's a unit
                 unit_data = game_env.units.get(cell, {})
                 owner = unit_data.get('owner', '?')
+                moved = cell in game_env.moved_units  # Check if unit moved this turn
+                
                 if owner == 1:
-                    grid_repr.append('🔵')  # Blue circle for Player 1's units
+                    grid_repr.append('🔵' if not moved else '🔷')  # Blue circle (solid for ready, hollow for moved)
                 elif owner == 2:
-                    grid_repr.append('🔴')  # Red circle for Player 2's units
+                    grid_repr.append('🔴' if not moved else '🔶')  # Red circle (solid for ready, hollow for moved)
                 else:
                     grid_repr.append('??')
         
@@ -129,13 +148,17 @@ class GameVisualizer:
             card = unit_data['card']
             owner = unit_data['owner']
             position = unit_data['position']
-            print(f"  Player {owner} - {card.name} at position {position}: HP={card.hp}, ATK={card.attack}")
+            moved = unit_id in game_env.moved_units
+            status = "MOVED (can't attack)" if moved else "READY"
+            print(f"  Player {owner} - {card.name} at position {position}: HP={card.hp}, ATK={card.attack} - {status}")
         
         # Print game status
         if game_env.game_over:
             print(f"\nGame Over! Player {game_env.winner} wins!")
         
         print("\nPress Ctrl+C to exit the visualization")
+        print("Note: Units that moved this turn (🔷/🔶) cannot attack until next turn")
+        print("Note: Players cannot play the same card twice in a row")
     
     def _visualize_matplotlib(self, game_env, player1, player2):
         """
@@ -166,25 +189,52 @@ class GameVisualizer:
                 unit_data = game_env.units.get(cell, {})
                 owner = unit_data.get('owner', '?')
                 card = unit_data.get('card', None)
+                moved = cell in game_env.moved_units  # Check if unit moved this turn
                 
                 if owner == 1:
                     color = 'blue'
+                    alpha = 0.4 if moved else 0.7  # Lower alpha if moved
                 elif owner == 2:
                     color = 'red'
+                    alpha = 0.4 if moved else 0.7  # Lower alpha if moved
                 else:
                     color = 'gray'
+                    alpha = 0.7
                 
                 # Draw unit as a circle
-                self.ax.add_patch(plt.Circle((i, 0.5), 0.4, fill=True, color=color, alpha=0.7))
+                self.ax.add_patch(plt.Circle((i, 0.5), 0.4, fill=True, color=color, alpha=alpha))
+                
+                # Add a dashed border if the unit moved and can't attack
+                if moved:
+                    self.ax.add_patch(plt.Circle((i, 0.5), 0.4, fill=False, color='black', linestyle='dashed'))
                 
                 # Add unit details
                 if card:
                     self.ax.text(i, 0.5, f"{card.hp}", ha='center', va='center', color='white', fontweight='bold')
         
+        # Count units for each player
+        p1_units = sum(1 for unit in game_env.units.values() if unit['owner'] == 1)
+        p2_units = sum(1 for unit in game_env.units.values() if unit['owner'] == 2)
+        
         # Add player info
         self.ax.text(0.5, 1.2, f"Turn: {game_env.turn_count}", ha='center', va='center', fontsize=12)
-        self.ax.text(0.5, 1.1, f"Player 1 Elixir: {player1.elixir}/{player1.max_elixir}", ha='center', va='center', color='blue')
-        self.ax.text(9.5, 1.1, f"Player 2 Elixir: {player2.elixir}/{player2.max_elixir}", ha='center', va='center', color='red')
+        self.ax.text(0.5, 1.1, f"Player 1: {player1.elixir}/{player1.max_elixir} elixir, {p1_units}/{player1.max_units} units", 
+                  ha='center', va='center', color='blue')
+        self.ax.text(9.5, 1.1, f"Player 2: {player2.elixir}/{player2.max_elixir} elixir, {p2_units}/{player2.max_units} units", 
+                  ha='center', va='center', color='red')
+        
+        # Show last played cards
+        p1_last_card = player1.last_played_card.name if player1.last_played_card else "None"
+        p2_last_card = player2.last_played_card.name if player2.last_played_card else "None"
+        
+        self.ax.text(0.5, 1.0, f"Player 1 last played: {p1_last_card}", ha='center', va='center', color='blue', fontsize=9)
+        self.ax.text(9.5, 1.0, f"Player 2 last played: {p2_last_card}", ha='center', va='center', color='red', fontsize=9)
+        
+        # Legend for moved units and card restrictions
+        self.ax.text(5, 1.2, "Note: Faded units with dashed borders have moved and can't attack", 
+                 ha='center', va='center', fontsize=10, color='black')
+        self.ax.text(5, 1.1, "Note: Players cannot play the same card twice in a row", 
+                 ha='center', va='center', fontsize=10, color='black')
         
         # Add game over message if applicable
         if game_env.game_over:
@@ -256,25 +306,33 @@ def run_visualization(player1_type="ai", player2_type="ai", delay=2.0, turns=100
     try:
         # Main game loop
         for turn in range(1, turns + 1):
-            # Process player actions
+            # PHASE 1: Process all unit movements first
+            # This includes resolving stalemates and moving units
+            game_env._process_movements()
+            
+            # Visualize the state after movements
+            visualizer.visualize_state(game_env, player1, player2)
+            
+            # PHASE 2: Process player actions (placing new units)
             if isinstance(player1, AIPlayer):
                 player1.make_move(game_env)
             
             if isinstance(player2, AIPlayer):
                 player2.make_move(game_env)
             
-            # Process turn in game environment
-            state = game_env.process_turn()
+            # PHASE 3: Process attacks and check win conditions
+            game_env._process_attacks()
+            game_env._check_win_conditions()
             
             # Generate elixir for players
             player1.generate_elixir()
             player2.generate_elixir()
             
-            # Visualize the current state
+            # Visualize the final state after all actions
             visualizer.visualize_state(game_env, player1, player2)
             
             # Check if game is over
-            if state["game_over"]:
+            if game_env.game_over:
                 # Show the final state a bit longer
                 time.sleep(2 * delay)
                 break

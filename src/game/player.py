@@ -3,13 +3,15 @@ class Player:
     Manages player state, including elixir and card deck.
     """
     
-    def __init__(self, player_id, deck, max_elixir=10, initial_elixir=5):
+    def __init__(self, player_id, deck, max_elixir=10, initial_elixir=5, max_units=4):
         self.player_id = player_id
         self.deck = deck
         self.max_elixir = max_elixir
         self.elixir = initial_elixir
         self.hand = []  # Cards currently in hand
         self.next_card_index = 0
+        self.max_units = max_units  # Maximum number of units a player can have on the field
+        self.last_played_card = None  # Track the last card played by this player
         
         # Initialize hand with 4 cards
         self._refill_hand()
@@ -19,16 +21,45 @@ class Player:
         while len(self.hand) < 4 and self.next_card_index < len(self.deck):
             self.hand.append(self.deck[self.next_card_index])
             self.next_card_index += 1
+            
+            # If we've gone through the entire deck, loop back to the beginning
+            if self.next_card_index >= len(self.deck):
+                self.next_card_index = 0
     
     def generate_elixir(self, amount=1):
         """Generate elixir for the player (called each turn)."""
         self.elixir = min(self.elixir + amount, self.max_elixir)
+        # Reset last played card at the start of a new turn
+        self.last_played_card = None
     
-    def can_play_card(self, hand_index):
-        """Check if the player can play a card from their hand."""
-        if 0 <= hand_index < len(self.hand):
-            return self.hand[hand_index].cost <= self.elixir
-        return False
+    def can_play_card(self, hand_index, game_env):
+        """
+        Check if the player can play a card from their hand.
+        
+        Args:
+            hand_index: Index of the card in the hand
+            game_env: GameEnvironment instance to check unit count
+            
+        Returns:
+            True if the card can be played, False otherwise
+        """
+        # Check if card exists and player has enough elixir
+        if not (0 <= hand_index < len(self.hand)):
+            return False
+            
+        if self.hand[hand_index].cost > self.elixir:
+            return False
+            
+        # Check if player has reached the maximum number of units
+        unit_count = sum(1 for unit in game_env.units.values() if unit['owner'] == self.player_id)
+        if unit_count >= self.max_units:
+            return False
+            
+        # Check if this is the same card as the last one played
+        if self.last_played_card is not None and self.hand[hand_index].name == self.last_played_card.name:
+            return False
+            
+        return True
     
     def play_card(self, hand_index, position, game_env):
         """
@@ -42,7 +73,7 @@ class Player:
         Returns:
             unit_id if successful, None otherwise
         """
-        if not self.can_play_card(hand_index):
+        if not self.can_play_card(hand_index, game_env):
             return None
         
         card = self.hand[hand_index]
@@ -53,15 +84,42 @@ class Player:
         if unit_id:
             # Card placement was successful
             self.elixir -= card.cost
-            self.hand.pop(hand_index)
-            self._refill_hand()
+            
+            # With the new reusable cards rule, we don't remove the card from hand
+            # Instead, we reset it so it can be used again
+            card.reset()
+            
+            # Record this as the last played card
+            self.last_played_card = card
+            
             return unit_id
         
         return None
     
-    def get_playable_cards(self):
-        """Get a list of cards that can be played based on current elixir."""
-        return [i for i, card in enumerate(self.hand) if card.cost <= self.elixir]
+    def get_playable_cards(self, game_env):
+        """
+        Get a list of cards that can be played based on current elixir, unit limit, and last played card.
+        
+        Args:
+            game_env: GameEnvironment instance to check unit count
+            
+        Returns:
+            List of indices of playable cards
+        """
+        # Check if player has reached the maximum number of units
+        unit_count = sum(1 for unit in game_env.units.values() if unit['owner'] == self.player_id)
+        if unit_count >= self.max_units:
+            return []
+            
+        # Filter cards based on elixir cost and last played card
+        playable_indices = []
+        for i, card in enumerate(self.hand):
+            if card.cost <= self.elixir:
+                # Skip if this is the same card as the last one played
+                if self.last_played_card is None or card.name != self.last_played_card.name:
+                    playable_indices.append(i)
+                    
+        return playable_indices
     
     def __str__(self):
         return f"Player {self.player_id} (Elixir: {self.elixir}/{self.max_elixir})"
@@ -72,8 +130,8 @@ class AIPlayer(Player):
     AI-controlled player with basic decision-making for card placement.
     """
     
-    def __init__(self, player_id, deck, max_elixir=10, initial_elixir=5, difficulty=1):
-        super().__init__(player_id, deck, max_elixir, initial_elixir)
+    def __init__(self, player_id, deck, max_elixir=10, initial_elixir=5, difficulty=1, max_units=4):
+        super().__init__(player_id, deck, max_elixir, initial_elixir, max_units)
         self.difficulty = difficulty  # 1: Easy, 2: Medium, 3: Hard
     
     def make_move(self, game_env):
@@ -86,8 +144,8 @@ class AIPlayer(Player):
         Returns:
             True if a move was made, False otherwise
         """
-        # Get playable cards
-        playable_indices = self.get_playable_cards()
+        # Get playable cards (considering elixir, unit limit, and last played card)
+        playable_indices = self.get_playable_cards(game_env)
         
         if not playable_indices:
             return False

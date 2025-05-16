@@ -1,3 +1,5 @@
+import random
+
 class GameEnvironment:
     """
     Manages the game grid, towers, and core game mechanics.
@@ -20,6 +22,9 @@ class GameEnvironment:
         # Units on the field (id: {position, card_instance, owner})
         self.units = {}
         self.next_unit_id = 1
+        
+        # Track units that moved this turn (can't attack after moving)
+        self.moved_units = set()
     
     def place_card(self, card, position, player_id):
         """Place a card on the grid."""
@@ -62,22 +67,17 @@ class GameEnvironment:
         
         return True
     
-    def process_turn(self):
-        """Process a single turn of the game."""
+    def _process_movements(self):
+        """Process all unit movements, including resolving stalemates."""
+        # Increment turn counter at the start of movement phase
         self.turn_count += 1
         
-        # Process all units movement and attacks
-        self._process_movements()
-        self._process_attacks()
+        # Reset the moved units set at the beginning of each turn
+        self.moved_units = set()
         
-        # Check win conditions
-        self._check_win_conditions()
+        # Check for stalemate situation (1-cell gap between opposing units)
+        self._resolve_stalemates()
         
-        # Return the current state
-        return self._get_state()
-    
-    def _process_movements(self):
-        """Move all units according to their movement rules."""
         # Sort units by position to prevent movement conflicts - but in different orders
         # for different players to prevent gridlock
         units_to_move = []
@@ -115,6 +115,83 @@ class GameEnvironment:
                 
                 # Update unit data
                 self.units[unit_id]['position'] = new_position
+                
+                # Mark the unit as moved (can't attack this turn)
+                self.moved_units.add(unit_id)
+    
+    def _resolve_stalemates(self):
+        """
+        Resolve stalemate situations when there's a 1-cell gap between opposing units.
+        The unit with higher HP will move into the gap.
+        """
+        # Find all empty cells
+        empty_cells = [i for i, cell in enumerate(self.grid) if cell == 0]
+        
+        for empty_pos in empty_cells:
+            # Check cells on both sides of the empty cell
+            left_pos = empty_pos - 1
+            right_pos = empty_pos + 1
+            
+            # Ensure positions are within grid bounds
+            if left_pos < 0 or right_pos >= self.grid_size:
+                continue
+                
+            left_cell = self.grid[left_pos]
+            right_cell = self.grid[right_pos]
+            
+            # Skip if either cell isn't a unit
+            if not isinstance(left_cell, int) or not isinstance(right_cell, int):
+                continue
+                
+            # Skip if either unit doesn't exist anymore (might have been destroyed)
+            if left_cell not in self.units or right_cell not in self.units:
+                continue
+                
+            left_owner = self.units[left_cell]['owner']
+            right_owner = self.units[right_cell]['owner']
+            
+            # Check if this is a stalemate between opposing units
+            if left_owner != right_owner:
+                # Get HP values for both units
+                left_hp = self.units[left_cell]['card'].hp
+                right_hp = self.units[right_cell]['card'].hp
+                
+                # The unit with higher HP moves into the gap
+                if left_hp > right_hp:
+                    # Move left unit (if it's Player 1)
+                    if left_owner == 1:
+                        self.grid[left_pos] = 0
+                        self.grid[empty_pos] = left_cell
+                        self.units[left_cell]['position'] = empty_pos
+                        # Mark the unit as moved (can't attack this turn)
+                        self.moved_units.add(left_cell)
+                elif right_hp > left_hp:
+                    # Move right unit (if it's Player 2)
+                    if right_owner == 2:
+                        self.grid[right_pos] = 0
+                        self.grid[empty_pos] = right_cell
+                        self.units[right_cell]['position'] = empty_pos
+                        # Mark the unit as moved (can't attack this turn)
+                        self.moved_units.add(right_cell)
+                else:
+                    # If HP values are equal, randomly choose which unit moves
+                    # (This is a fallback for the rare case of equal HP)
+                    if random.choice([True, False]):
+                        # Move right unit (if it's Player 2)
+                        if right_owner == 2:
+                            self.grid[right_pos] = 0
+                            self.grid[empty_pos] = right_cell
+                            self.units[right_cell]['position'] = empty_pos
+                            # Mark the unit as moved (can't attack this turn)
+                            self.moved_units.add(right_cell)
+                    else:
+                        # Move left unit (if it's Player 1)
+                        if left_owner == 1:
+                            self.grid[left_pos] = 0
+                            self.grid[empty_pos] = left_cell
+                            self.units[left_cell]['position'] = empty_pos
+                            # Mark the unit as moved (can't attack this turn)
+                            self.moved_units.add(left_cell)
     
     def _process_attacks(self):
         """Process attacks for all units."""
@@ -124,6 +201,10 @@ class GameEnvironment:
         for unit_id, unit_data in units_to_process:
             # Skip if unit was destroyed during this turn
             if unit_id not in self.units:
+                continue
+                
+            # Skip if the unit moved this turn (units can either move OR attack in a turn)
+            if unit_id in self.moved_units:
                 continue
                 
             position = unit_data['position']
@@ -147,8 +228,11 @@ class GameEnvironment:
                         # Player 1 wins if they damage player 2's tower
                         self.game_over = True
                         self.winner = 1
-                    elif isinstance(target, int) and target in self.units:  # Target is a valid unit
-                        self._attack_unit(unit_id, target)
+                    elif isinstance(target, int) and target in self.units:
+                        # Check if the target is an enemy unit (no friendly fire)
+                        target_owner = self.units[target]['owner']
+                        if target_owner != owner:  # Only attack enemy units
+                            self._attack_unit(unit_id, target)
     
     def _attack_unit(self, attacker_id, defender_id):
         """Process an attack between two units."""
@@ -183,7 +267,8 @@ class GameEnvironment:
                 'position': data['position'],
                 'hp': data['card'].hp,
                 'attack': data['card'].attack,
-                'owner': data['owner']
+                'owner': data['owner'],
+                'moved_this_turn': uid in self.moved_units
             } for uid, data in self.units.items()},
             'game_over': self.game_over,
             'winner': self.winner

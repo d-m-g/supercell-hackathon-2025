@@ -72,10 +72,10 @@ class CardDeck:
 def create_sample_cards():
     """Create a set of sample cards for testing."""
     return [
-        Card("Knight", attack=3, hp=10, cost=3),
-        Card("Archer", attack=2, hp=4, cost=2),
-        Card("Giant", attack=5, hp=20, cost=5),
-        Card("Goblin", attack=1, hp=3, cost=1),
+        Card("Knight", attack=5, hp=10, cost=3),
+        Card("Archer", attack=4, hp=4, cost=2),
+        Card("Giant", attack=10, hp=20, cost=5),
+        Card("Goblin", attack=3, hp=3, cost=1),
         Card("Wizard", attack=4, hp=5, cost=4),
-        Card("Skeleton", attack=1, hp=1, cost=1),
+        Card("Skeleton", attack=2, hp=1, cost=1),
     ] 
