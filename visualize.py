@@ -23,9 +23,9 @@ def main():
     settings = {
         "player1_type": "ai",
         "player2_type": "ai",
-        "delay": 0.5,
+        "delay": 2.0,
         "turns": 100,
-        "difficulty": 2,
+        "difficulty": 1,
         "use_ascii": True,
         "use_matplotlib": has_matplotlib
     }
@@ -130,9 +130,9 @@ Options:
   --ascii-only         Use only ASCII visualization (default if matplotlib not available)
   --plot-only          Use only graphical (matplotlib) visualization
   --both               Use both ASCII and graphical visualization (default)
-  --delay VALUE        Set delay between turns in seconds (default: 0.5)
+  --delay VALUE        Set delay between turns in seconds (default: 2.0)
   --turns VALUE        Set maximum number of turns (default: 100)
-  --difficulty VALUE   Set AI difficulty (1: Easy, 2: Medium, 3: Hard, default: 2)
+  --difficulty VALUE   Set AI difficulty (1: Easy, 2: Medium, 3: Hard, default: 1)
   --player1 TYPE       Set player 1 type (human or ai, default: ai)
   --player2 TYPE       Set player 2 type (human or ai, default: ai)
   --help, -h           Show this help message and exit
