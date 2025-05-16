@@ -38,6 +38,7 @@ clash-royale-prototype/
 │   │   ├── environment.py # Game grid and core mechanics
 │   │   └── player.py     # Player and AI logic
 │   ├── replay/           # Replay recording and loading
+│   │   └── recorder.py   # Replay recording and analysis
 │   ├── analysis/         # Analysis and visualization tools
 │   └── visualize_game.py # Game visualization and main entry point
 ├── replays/              # Saved game replays
@@ -69,12 +70,13 @@ clash-royale-prototype/
 
 ## Usage
 
-The prototype provides a command-line interface for running and visualizing games:
+The prototype provides two main ways to run games:
 
-### Running a Game
+### 1. Visualized Gameplay
 
-```
-python visualize.py [--player1 {human,ai}] [--player2 {human,ai}] [--delay DELAY] [--turns TURNS] [--difficulty {1,2,3}] [--ascii] [--plot]
+Run a game with real-time visualization:
+```bash
+python visualize.py [options]
 ```
 
 Options:
@@ -83,10 +85,38 @@ Options:
 - `--delay`: Delay between turns in seconds (default: 2.0)
 - `--turns`: Maximum number of turns (default: 100)
 - `--difficulty`: AI difficulty level (1: Easy, 2: Medium, 3: Hard, default: 1)
-- `--ascii`: Use ASCII visualization (default: True)
-- `--plot`: Use matplotlib visualization (default: False)
+- `--ascii-only`: Use only ASCII visualization
+- `--plot-only`: Use only graphical (matplotlib) visualization
+- `--both`: Use both ASCII and graphical visualization (default)
 
-### Visualization Modes
+### 2. Replay Recording
+
+Run a game without visualization and save it as a replay:
+```bash
+python visualize.py --record [options]
+```
+
+The replay will be saved to the `replays` directory with metadata including:
+- Player types and difficulty levels
+- Card distributions
+- Game duration and turn count
+- Winner information
+- Complete game state history
+
+### 3. Replay Analysis
+
+Analyze saved replays using:
+```bash
+python src/main.py analyze <replay_file>
+```
+
+This generates:
+- Card usage statistics
+- Battle flow analysis
+- Win factor analysis
+- Visualizations (unit counts, battle flow, heatmaps)
+
+## Visualization Modes
 
 The game can be visualized in two ways:
 
