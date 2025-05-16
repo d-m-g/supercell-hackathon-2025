@@ -4,6 +4,7 @@ import time
 import argparse
 import matplotlib.pyplot as plt
 import numpy as np
+import random
 from matplotlib.colors import LinearSegmentedColormap
 
 # Add the src directory to the path so we can import our modules
@@ -13,6 +14,8 @@ from src.game.environment import GameEnvironment
 from src.game.card import Card, CardDeck, create_sample_cards
 from src.game.player import Player, AIPlayer
 
+# Seed the random number generator for reproducibility (optional)
+random.seed()
 
 class GameVisualizer:
     """
@@ -219,9 +222,22 @@ def run_visualization(player1_type="ai", player2_type="ai", delay=0.5, turns=100
     # Create card decks for players
     sample_cards = create_sample_cards()
     
-    # For visualization, we'll give each player a different set of cards
-    player1_deck = CardDeck(sample_cards[:3])  # First 3 cards
-    player2_deck = CardDeck(sample_cards[3:])  # Last 3 cards
+    # Shuffle the cards for fair distribution
+    random.shuffle(sample_cards)
+    
+    # Split cards evenly between players after shuffling
+    half = len(sample_cards) // 2
+    player1_cards = sample_cards[:half]
+    player2_cards = sample_cards[half:]
+    
+    # Ensure both players have cards with a good mix of attributes
+    player1_deck = CardDeck(player1_cards)
+    player2_deck = CardDeck(player2_cards)
+    
+    # Print card distribution for debugging (optional)
+    print("Player 1 cards:", ", ".join(str(card) for card in player1_deck))
+    print("Player 2 cards:", ", ".join(str(card) for card in player2_deck))
+    print()
     
     # Create players based on type
     if player1_type.lower() == "ai":
