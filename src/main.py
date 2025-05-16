@@ -12,11 +12,6 @@ from game.player import Player, AIPlayer
 from replay.recorder import ReplayRecorder, ReplayLoader
 from replay.recorder import get_replay_summary
 
-# Import analysis modules
-from analysis.statistics import ReplayAnalyzer, analyze_multiple_replays
-from analysis.visualizer import ReplayVisualizer
-
-
 def run_game(player1_type="human", player2_type="ai", turns=100, difficulty=2):
     """
     Run a single game between two players.
@@ -88,54 +83,9 @@ def run_game(player1_type="human", player2_type="ai", turns=100, difficulty=2):
     
     return replay_path
 
-
-def analyze_replay(replay_path):
-    """
-    Analyze a single replay and generate visualizations.
-    
-    Args:
-        replay_path: Path to the replay file
-        
-    Returns:
-        Dictionary with analysis results
-    """
-    # Load replay
-    loader = ReplayLoader()
-    replay_data = loader.load(os.path.basename(replay_path))
-    
-    if not replay_data:
-        return {"error": f"Could not load replay from {replay_path}"}
-    
-    # Get summary
-    summary = get_replay_summary(replay_data)
-    
-    # Analyze replay
-    analyzer = ReplayAnalyzer(replay_data)
-    
-    # Generate statistics
-    card_stats = analyzer.get_card_usage_stats()
-    battle_flow = analyzer.get_battle_flow()
-    win_factors = analyzer.get_win_factors()
-    
-    # Generate visualizations
-    visualizer = ReplayVisualizer(replay_data)
-    visualizations = visualizer.generate_all_visualizations()
-    
-    # Compile results
-    results = {
-        "summary": summary,
-        "card_stats": card_stats,
-        "battle_flow": battle_flow,
-        "win_factors": win_factors,
-        "visualizations": visualizations
-    }
-    
-    return results
-
-
 def batch_generate_replays(count=10, all_ai=True, difficulty=2):
     """
-    Generate a batch of replays for analysis.
+    Generate a batch of replays.
     
     Args:
         count: Number of replays to generate
@@ -164,21 +114,6 @@ def batch_generate_replays(count=10, all_ai=True, difficulty=2):
     
     return replay_paths
 
-
-def analyze_batch_replays():
-    """
-    Analyze all replays in the replay directory.
-    
-    Returns:
-        Path to the aggregate statistics file
-    """
-    # Analyze all replays and generate aggregate statistics
-    stats = analyze_multiple_replays()
-    
-    # Return path to aggregate statistics file
-    return os.path.join("analysis_results", "aggregate_stats.json")
-
-
 def main():
     """Main function to parse arguments and run the game."""
     parser = argparse.ArgumentParser(description="Clash Royale Prototype")
@@ -199,48 +134,23 @@ def main():
     batch_parser.add_argument("--all-ai", action="store_true", help="All games are AI vs AI")
     batch_parser.add_argument("--difficulty", type=int, choices=[1, 2, 3], default=2, help="AI difficulty")
     
-    # Parser for the 'analyze' command
-    analyze_parser = subparsers.add_parser("analyze", help="Analyze a replay")
-    analyze_parser.add_argument("replay", help="Path to replay file")
-    
-    # Parser for the 'analyze-all' command
-    analyze_all_parser = subparsers.add_parser("analyze-all", help="Analyze all replays")
-    
     # Parse arguments
     args = parser.parse_args()
     
     # Create necessary directories
     os.makedirs("replays", exist_ok=True)
-    os.makedirs("analysis_results", exist_ok=True)
     
     # Handle commands
     if args.command == "play":
         replay_path = run_game(args.player1, args.player2, args.turns, args.difficulty)
         print(f"Game completed! Replay saved to: {replay_path}")
         
-        # Automatically analyze the replay
-        results = analyze_replay(replay_path)
-        print("Replay analyzed. Check the analysis_results directory for visualizations.")
-        
     elif args.command == "batch":
         replay_paths = batch_generate_replays(args.count, args.all_ai, args.difficulty)
-        print(f"Generated {len(replay_paths)} replays.")
-        
-        # Automatically analyze all replays
-        stats_path = analyze_batch_replays()
-        print(f"Batch analysis complete. Aggregate statistics saved to: {stats_path}")
-        
-    elif args.command == "analyze":
-        results = analyze_replay(args.replay)
-        print("Replay analyzed. Check the analysis_results directory for visualizations.")
-        
-    elif args.command == "analyze-all":
-        stats_path = analyze_batch_replays()
-        print(f"Batch analysis complete. Aggregate statistics saved to: {stats_path}")
+        print(f"Generated {len(replay_paths)} replays in the 'replays' directory.")
         
     else:
         parser.print_help()
-
 
 if __name__ == "__main__":
     main() 
