@@ -11,15 +11,35 @@ A simplified Clash Royale-inspired prototype designed to generate game replays f
 - Comprehensive replay recording system
 - Advanced analysis and visualization tools
 
+## Game Rules
+
+- **Card Distribution**: Decks are randomly generated and shuffled for fair distribution
+- **Card Usage**: Cards can be reused (they return to hand after being played)
+- **Unit Limit**: Each player can have up to 4 units on the field at once
+- **Card Placement**: Players can only place units 1-2 spaces from their tower
+- **Movement & Combat**:
+  - Units can either move OR attack in a turn, not both
+  - Units that move cannot attack until the next turn
+  - When there's a 1-cell gap between opposing units, the unit with higher HP moves forward
+  - No friendly fire (units only attack enemy units)
+- **Card Restrictions**: Players cannot play the same card twice in a row
+- **Turn Phases**:
+  1. Movement Phase: All units move first
+  2. Placement Phase: Players can place new units
+  3. Attack Phase: Units that didn't move can attack
+
 ## Project Structure
 
 ```
 clash-royale-prototype/
 ├── src/                  # Source code
 │   ├── game/             # Core game mechanics
+│   │   ├── card.py       # Card definitions and deck management
+│   │   ├── environment.py # Game grid and core mechanics
+│   │   └── player.py     # Player and AI logic
 │   ├── replay/           # Replay recording and loading
 │   ├── analysis/         # Analysis and visualization tools
-│   └── main.py           # Main entry point
+│   └── visualize_game.py # Game visualization and main entry point
 ├── replays/              # Saved game replays
 ├── analysis_results/     # Analysis outputs and visualizations
 ├── DEVELOPMENT_PLAN.md   # Project development plan
@@ -49,42 +69,38 @@ clash-royale-prototype/
 
 ## Usage
 
-The prototype provides several commands through a command-line interface:
+The prototype provides a command-line interface for running and visualizing games:
 
-### Playing a Single Game
+### Running a Game
 
 ```
-python src/main.py play [--player1 {human,ai}] [--player2 {human,ai}] [--turns TURNS] [--difficulty {1,2,3}]
+python visualize.py [--player1 {human,ai}] [--player2 {human,ai}] [--delay DELAY] [--turns TURNS] [--difficulty {1,2,3}] [--ascii] [--plot]
 ```
 
 Options:
 - `--player1`: Type of player 1 (human or ai, default: ai)
 - `--player2`: Type of player 2 (human or ai, default: ai)
+- `--delay`: Delay between turns in seconds (default: 2.0)
 - `--turns`: Maximum number of turns (default: 100)
-- `--difficulty`: AI difficulty level (1: Easy, 2: Medium, 3: Hard, default: 2)
+- `--difficulty`: AI difficulty level (1: Easy, 2: Medium, 3: Hard, default: 1)
+- `--ascii`: Use ASCII visualization (default: True)
+- `--plot`: Use matplotlib visualization (default: False)
 
-### Generating Multiple Games
+### Visualization Modes
 
-```
-python src/main.py batch [--count COUNT] [--all-ai] [--difficulty {1,2,3}]
-```
+The game can be visualized in two ways:
 
-Options:
-- `--count`: Number of games to generate (default: 10)
-- `--all-ai`: Set all games to be AI vs AI
-- `--difficulty`: AI difficulty level (default: 2)
+1. **ASCII Mode** (default):
+   - Shows the game grid using ASCII characters
+   - Displays unit status (moved/ready)
+   - Shows last played cards for each player
+   - Updates in real-time in the terminal
 
-### Analyzing a Single Replay
-
-```
-python src/main.py analyze REPLAY_FILE
-```
-
-### Analyzing All Replays
-
-```
-python src/main.py analyze-all
-```
+2. **Matplotlib Mode** (optional):
+   - Provides a graphical visualization
+   - Shows unit positions and health
+   - Displays game statistics
+   - Updates in a separate window
 
 ## Analysis Features
 
