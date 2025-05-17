@@ -12,7 +12,7 @@ from game.player import Player, AIPlayer
 from replay.recorder import ReplayRecorder, ReplayLoader
 from replay.recorder import get_replay_summary
 
-def run_game(player1_type="human", player2_type="ai", turns=100, difficulty=2, seed=None):
+def run_game(player1_type="human", player2_type="ai", turns=100, difficulty=2, seed=None, batch_index=None):
     """
     Run a single game between two players.
     
@@ -22,6 +22,7 @@ def run_game(player1_type="human", player2_type="ai", turns=100, difficulty=2, s
         turns: Maximum number of turns
         difficulty: AI difficulty (1-3)
         seed: Random seed for reproducibility (optional)
+        batch_index: Index for batch-generated replays (optional)
         
     Returns:
         Path to the saved replay file
@@ -95,7 +96,7 @@ def run_game(player1_type="human", player2_type="ai", turns=100, difficulty=2, s
             break
     
     # Save replay
-    return recorder.save()
+    return recorder.save(batch_index=batch_index)
 
 def batch_generate_replays(count=10, player1_type="ai", player2_type="ai", turns=100, difficulty=2):
     """
@@ -121,7 +122,8 @@ def batch_generate_replays(count=10, player1_type="ai", player2_type="ai", turns
             player2_type=player2_type,
             turns=turns,
             difficulty=difficulty,
-            seed=i
+            seed=i,
+            batch_index=i
         )
         replay_paths.append(replay_path)
         print(f"Generated replay {i+1}/{count}: {os.path.basename(replay_path)}")

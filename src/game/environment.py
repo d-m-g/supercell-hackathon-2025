@@ -25,6 +25,9 @@ class GameEnvironment:
         
         # Track units that moved this turn (can't attack after moving)
         self.moved_units = set()
+        
+        # Track attacks for this turn
+        self.current_attacks = []
     
     def place_card(self, card, position, player_id):
         """Place a card on the grid."""
@@ -218,6 +221,9 @@ class GameEnvironment:
     
     def _process_attacks(self):
         """Process all attacks for units that haven't moved this turn."""
+        # Reset attacks for this turn
+        self.current_attacks = []
+        
         # Make a copy of units to avoid modification during iteration
         units_copy = dict(self.units)
         
@@ -249,16 +255,35 @@ class GameEnvironment:
                 if owner == 1 and position + card.range >= self.grid_size - 1:
                     # Player 1's unit can attack Player 2's tower
                     self._attack_tower(unit_id, 2)
+                    self.current_attacks.append({
+                        'attacker_id': unit_id,
+                        'target_type': 'tower',
+                        'target_player': 2,
+                        'damage': card.attack
+                    })
                 elif owner == 2 and position - card.range <= 0:
                     # Player 2's unit can attack Player 1's tower
                     self._attack_tower(unit_id, 1)
+                    self.current_attacks.append({
+                        'attacker_id': unit_id,
+                        'target_type': 'tower',
+                        'target_player': 1,
+                        'damage': card.attack
+                    })
                 continue
             
             # Sort targets by distance (closest first)
             targets.sort(key=lambda x: x[1])
             
             # Attack the closest target
-            self._attack_unit(unit_id, targets[0][0])
+            target_id = targets[0][0]
+            self._attack_unit(unit_id, target_id)
+            self.current_attacks.append({
+                'attacker_id': unit_id,
+                'target_type': 'unit',
+                'target_id': target_id,
+                'damage': card.attack
+            })
 
     def _attack_tower(self, attacker_id, tower_player):
         """Process an attack on a tower."""
@@ -316,6 +341,7 @@ class GameEnvironment:
                 'owner': data['owner'],
                 'moved_this_turn': uid in self.moved_units
             } for uid, data in self.units.items()},
+            'attacks': self.current_attacks.copy(),  # Include attack information
             'game_over': self.game_over,
             'winner': self.winner
         } 
