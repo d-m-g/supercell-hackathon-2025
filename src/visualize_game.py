@@ -22,15 +22,17 @@ class GameVisualizer:
     Visualizes the game state in real-time.
     """
     
-    def __init__(self, use_ascii=True, use_matplotlib=False, delay=0.5):
+    def __init__(self, game_env=None, use_ascii=True, use_matplotlib=False, delay=0.5):
         """
         Initialize the visualizer.
         
         Args:
+            game_env: Optional GameEnvironment instance
             use_ascii: Whether to use ASCII representation
             use_matplotlib: Whether to use matplotlib for visualization
             delay: Delay between turns in seconds
         """
+        self.game_env = game_env
         self.use_ascii = use_ascii
         self.use_matplotlib = use_matplotlib
         self.delay = delay
@@ -54,14 +56,14 @@ class GameVisualizer:
         self.ax.set_title('Clash Royale Prototype - Game Flow')
         self.ax.grid(True, alpha=0.3)
     
-    def visualize_state(self, game_env, player1, player2):
+    def visualize_state(self, game_env, player1=None, player2=None):
         """
         Visualize the current game state.
         
         Args:
             game_env: GameEnvironment instance
-            player1: Player 1 instance
-            player2: Player 2 instance
+            player1: Optional Player 1 instance (None for replay visualization)
+            player2: Optional Player 2 instance (None for replay visualization)
         """
         if self.use_ascii:
             self._visualize_ascii(game_env, player1, player2)
@@ -71,14 +73,14 @@ class GameVisualizer:
             
         time.sleep(self.delay)
     
-    def _visualize_ascii(self, game_env, player1, player2):
+    def _visualize_ascii(self, game_env, player1=None, player2=None):
         """
         Visualize the game state using ASCII characters.
         
         Args:
             game_env: GameEnvironment instance
-            player1: Player 1 instance
-            player2: Player 2 instance
+            player1: Optional Player 1 instance (None for replay visualization)
+            player2: Optional Player 2 instance (None for replay visualization)
         """
         # Clear the console
         os.system('cls' if os.name == 'nt' else 'clear')
@@ -86,16 +88,18 @@ class GameVisualizer:
         # Print turn information
         print(f"Turn: {game_env.turn_count}")
         
-        # Print player decks
-        print("\nPlayer 1 Deck:")
-        for i, card in enumerate(player1.deck):
-            status = "IN HAND" if card in player1.hand else "in deck"
-            print(f"  {i+1}. {card.name}: ATK={card.attack}, HP={card.hp}, Cost={card.cost}, Range={card.range} - {status}")
+        # Print player decks if available
+        if player1 is not None:
+            print("\nPlayer 1 Deck:")
+            for i, card in enumerate(player1.deck):
+                status = "IN HAND" if card in player1.hand else "in deck"
+                print(f"  {i+1}. {card.name}: ATK={card.attack}, HP={card.hp}, Cost={card.cost}, Range={card.range} - {status}")
         
-        print("\nPlayer 2 Deck:")
-        for i, card in enumerate(player2.deck):
-            status = "IN HAND" if card in player2.hand else "in deck"
-            print(f"  {i+1}. {card.name}: ATK={card.attack}, HP={card.hp}, Cost={card.cost}, Range={card.range} - {status}")
+        if player2 is not None:
+            print("\nPlayer 2 Deck:")
+            for i, card in enumerate(player2.deck):
+                status = "IN HAND" if card in player2.hand else "in deck"
+                print(f"  {i+1}. {card.name}: ATK={card.attack}, HP={card.hp}, Cost={card.cost}, Range={card.range} - {status}")
         
         print("\n" + "="*50 + "\n")  # Separator line
         
@@ -103,19 +107,29 @@ class GameVisualizer:
         p1_units = sum(1 for unit in game_env.units.values() if unit['owner'] == 1)
         p2_units = sum(1 for unit in game_env.units.values() if unit['owner'] == 2)
         
-        print(f"Player 1 Elixir: {player1.elixir}/{player1.max_elixir} (Units: {p1_units}/{player1.max_units})")
-        print(f"Player 2 Elixir: {player2.elixir}/{player2.max_elixir} (Units: {p2_units}/{player2.max_units})")
-        
-        # Show last played cards
-        if player1.last_played_card:
-            print(f"Player 1 last played: {player1.last_played_card.name} (can't play again this turn)")
+        # Print elixir and unit counts if player info is available
+        if player1 is not None:
+            print(f"Player 1 Elixir: {player1.elixir}/{player1.max_elixir} (Units: {p1_units}/{player1.max_units})")
         else:
-            print("Player 1 last played: None")
+            print(f"Player 1 Units: {p1_units}")
             
-        if player2.last_played_card:
-            print(f"Player 2 last played: {player2.last_played_card.name} (can't play again this turn)")
+        if player2 is not None:
+            print(f"Player 2 Elixir: {player2.elixir}/{player2.max_elixir} (Units: {p2_units}/{player2.max_units})")
         else:
-            print("Player 2 last played: None")
+            print(f"Player 2 Units: {p2_units}")
+        
+        # Show last played cards if available
+        if player1 is not None:
+            if player1.last_played_card:
+                print(f"Player 1 last played: {player1.last_played_card.name} (can't play again this turn)")
+            else:
+                print("Player 1 last played: None")
+                
+        if player2 is not None:
+            if player2.last_played_card:
+                print(f"Player 2 last played: {player2.last_played_card.name} (can't play again this turn)")
+            else:
+                print("Player 2 last played: None")
             
         print()
         
@@ -174,14 +188,14 @@ class GameVisualizer:
         print("Note: Players cannot play the same card twice in a row")
         print("Note: Units can attack any enemy within their range")
     
-    def _visualize_matplotlib(self, game_env, player1, player2):
+    def _visualize_matplotlib(self, game_env, player1=None, player2=None):
         """
         Visualize the game state using matplotlib.
         
         Args:
             game_env: GameEnvironment instance
-            player1: Player 1 instance
-            player2: Player 2 instance
+            player1: Optional Player 1 instance (None for replay visualization)
+            player2: Optional Player 2 instance (None for replay visualization)
         """
         if not self.use_matplotlib:
             return
@@ -242,51 +256,66 @@ class GameVisualizer:
         # Add player info and decks
         # Player 1 info (left side)
         self.ax.text(1, 1.2, f"Turn: {game_env.turn_count}", ha='center', va='center', fontsize=12)
-        self.ax.text(1, 1.1, f"Player 1: {player1.elixir}/{player1.max_elixir} elixir, {p1_units}/{player1.max_units} units", 
-                  ha='center', va='center', color='blue')
         
-        # Player 1 deck
-        deck_y = 1.0
-        self.ax.text(1, deck_y, "Player 1 Deck:", ha='center', va='center', color='blue', fontsize=9, fontweight='bold')
-        for i, card in enumerate(player1.deck):
-            status = "IN HAND" if card in player1.hand else "in deck"
-            card_text = f"{card.name} (ATK:{card.attack}, HP:{card.hp}, Cost:{card.cost}, R:{card.range}) - {status}"
-            self.ax.text(1, deck_y - 0.1 * (i + 1), card_text, ha='center', va='center', 
-                      color='blue', fontsize=8, alpha=1.0 if card in player1.hand else 0.6)
+        if player1 is not None:
+            self.ax.text(1, 1.1, f"Player 1: {player1.elixir}/{player1.max_elixir} elixir, {p1_units}/{player1.max_units} units", 
+                      ha='center', va='center', color='blue')
+            
+            # Player 1 deck
+            deck_y = 1.0
+            self.ax.text(1, deck_y, "Player 1 Deck:", ha='center', va='center', color='blue', fontsize=9, fontweight='bold')
+            for i, card in enumerate(player1.deck):
+                status = "IN HAND" if card in player1.hand else "in deck"
+                card_text = f"{card.name} (ATK:{card.attack}, HP:{card.hp}, Cost:{card.cost}, R:{card.range}) - {status}"
+                self.ax.text(1, deck_y - 0.1 * (i + 1), card_text, ha='center', va='center', 
+                          color='blue', fontsize=8, alpha=1.0 if card in player1.hand else 0.6)
+        else:
+            self.ax.text(1, 1.1, f"Player 1 Units: {p1_units}", ha='center', va='center', color='blue')
         
         # Player 2 info (right side)
-        self.ax.text(17, 1.1, f"Player 2: {player2.elixir}/{player2.max_elixir} elixir, {p2_units}/{player2.max_units} units", 
-                  ha='center', va='center', color='red')
+        if player2 is not None:
+            self.ax.text(17, 1.1, f"Player 2: {player2.elixir}/{player2.max_elixir} elixir, {p2_units}/{player2.max_units} units", 
+                      ha='center', va='center', color='red')
+            
+            # Player 2 deck
+            deck_y = 1.0
+            self.ax.text(17, deck_y, "Player 2 Deck:", ha='center', va='center', color='red', fontsize=9, fontweight='bold')
+            for i, card in enumerate(player2.deck):
+                status = "IN HAND" if card in player2.hand else "in deck"
+                card_text = f"{card.name} (ATK:{card.attack}, HP:{card.hp}, Cost:{card.cost}, R:{card.range}) - {status}"
+                self.ax.text(17, deck_y - 0.1 * (i + 1), card_text, ha='center', va='center', 
+                          color='red', fontsize=8, alpha=1.0 if card in player2.hand else 0.6)
+        else:
+            self.ax.text(17, 1.1, f"Player 2 Units: {p2_units}", ha='center', va='center', color='red')
         
-        # Player 2 deck
-        deck_y = 1.0
-        self.ax.text(17, deck_y, "Player 2 Deck:", ha='center', va='center', color='red', fontsize=9, fontweight='bold')
-        for i, card in enumerate(player2.deck):
-            status = "IN HAND" if card in player2.hand else "in deck"
-            card_text = f"{card.name} (ATK:{card.attack}, HP:{card.hp}, Cost:{card.cost}, R:{card.range}) - {status}"
-            self.ax.text(17, deck_y - 0.1 * (i + 1), card_text, ha='center', va='center', 
-                      color='red', fontsize=8, alpha=1.0 if card in player2.hand else 0.6)
-        
-        # Show last played cards
-        p1_last_card = player1.last_played_card.name if player1.last_played_card else "None"
-        p2_last_card = player2.last_played_card.name if player2.last_played_card else "None"
-        
-        # Move last played cards info lower to make room for decks
-        self.ax.text(1, -0.2, f"Player 1 last played: {p1_last_card}", ha='center', va='center', color='blue', fontsize=9)
-        self.ax.text(17, -0.2, f"Player 2 last played: {p2_last_card}", ha='center', va='center', color='red', fontsize=9)
+        # Show last played cards if available
+        if player1 is not None:
+            p1_last_card = player1.last_played_card.name if player1.last_played_card else "None"
+            self.ax.text(1, -0.2, f"Player 1 last played: {p1_last_card}", ha='center', va='center', color='blue', fontsize=9)
+            
+        if player2 is not None:
+            p2_last_card = player2.last_played_card.name if player2.last_played_card else "None"
+            self.ax.text(17, -0.2, f"Player 2 last played: {p2_last_card}", ha='center', va='center', color='red', fontsize=9)
         
         # Adjust y-axis limits to accommodate deck information
-        self.ax.set_ylim(-0.5, 1.5 + len(player1.deck) * 0.1)  # Adjust based on deck size
+        max_deck_size = max(
+            len(player1.deck) if player1 is not None else 0,
+            len(player2.deck) if player2 is not None else 0
+        )
+        self.ax.set_ylim(-0.5, 1.5 + max_deck_size * 0.1)  # Adjust based on deck size
         
         # Legend for moved units and card restrictions
-        self.ax.text(9, 1.2 + len(player1.deck) * 0.1, "Note: Faded units with dashed borders have moved and can't attack", 
+        legend_y = 1.2 + max_deck_size * 0.1
+        self.ax.text(9, legend_y, "Note: Faded units with dashed borders have moved and can't attack", 
                  ha='center', va='center', fontsize=10, color='black')
-        self.ax.text(9, 1.1 + len(player1.deck) * 0.1, "Note: Players cannot play the same card twice in a row", 
+        self.ax.text(9, legend_y - 0.1, "Note: Colored circles show unit attack ranges", 
                  ha='center', va='center', fontsize=10, color='black')
-        self.ax.text(9, 1.0 + len(player1.deck) * 0.1, "Note: Colored circles show unit attack ranges", 
-                 ha='center', va='center', fontsize=10, color='black')
-        self.ax.text(9, 0.9 + len(player1.deck) * 0.1, "Note: Cards in hand are shown in full opacity, deck cards are faded", 
-                 ha='center', va='center', fontsize=10, color='black')
+        
+        if player1 is not None or player2 is not None:
+            self.ax.text(9, legend_y - 0.2, "Note: Players cannot play the same card twice in a row", 
+                     ha='center', va='center', fontsize=10, color='black')
+            self.ax.text(9, legend_y - 0.3, "Note: Cards in hand are shown in full opacity, deck cards are faded", 
+                     ha='center', va='center', fontsize=10, color='black')
         
         # Add game over message if applicable
         if game_env.game_over:
@@ -304,100 +333,119 @@ class GameVisualizer:
             plt.close(self.fig)
 
 
-def run_visualization(player1_type="ai", player2_type="ai", delay=2.0, turns=100, 
-                     difficulty=1, use_ascii=True, use_matplotlib=False):
+def run_visualization(player1_type="ai", player2_type="ai", delay=2.0, turns=100, difficulty=2, use_ascii=True, use_matplotlib=True, replay_data=None, seed=None):
     """
-    Run a visualization of the game.
+    Run a game visualization.
     
     Args:
         player1_type: Type of player 1 ("human" or "ai")
         player2_type: Type of player 2 ("human" or "ai")
-        delay: Delay between turns in seconds (default: 2.0)
+        delay: Delay between turns in seconds
         turns: Maximum number of turns
-        difficulty: AI difficulty level (default: 1)
+        difficulty: AI difficulty (1-3)
         use_ascii: Whether to use ASCII visualization
         use_matplotlib: Whether to use matplotlib visualization
+        replay_data: Optional replay data to visualize instead of running a new game
+        seed: Random seed for reproducibility (optional)
     """
+    # Set random seed if provided
+    if seed is not None:
+        random.seed(seed)
+    
     # Initialize game environment
-    game_env = GameEnvironment(grid_size=18)
+    game_env = GameEnvironment(grid_size=18)  # Updated to 18x1 grid
     
-    # Create card decks for players
-    sample_cards = create_sample_cards()
+    # Create visualization
+    viz = GameVisualizer(use_ascii=use_ascii, use_matplotlib=use_matplotlib, delay=delay)
     
-    # Shuffle the cards for fair distribution
-    random.shuffle(sample_cards)
-    
-    # Split cards evenly between players after shuffling
-    half = len(sample_cards) // 2
-    player1_cards = sample_cards[:half]
-    player2_cards = sample_cards[half:]
-
-    # # Custom made deck for testing
-    # player1_cards = [sample_cards[4], sample_cards[1], sample_cards[5]]
-    # player2_cards = [sample_cards[2], sample_cards[3], sample_cards[0]]
-    
-    # Ensure both players have cards with a good mix of attributes
-    player1_deck = CardDeck(player1_cards)
-    player2_deck = CardDeck(player2_cards)
-    
-    # Print card distribution for debugging (optional)
-    print("Player 1 cards:", ", ".join(str(card) for card in player1_deck))
-    print("Player 2 cards:", ", ".join(str(card) for card in player2_deck))
-    print()
-    
-    # Create players based on type
-    if player1_type.lower() == "ai":
-        player1 = AIPlayer(1, player1_deck, difficulty=difficulty)
+    if replay_data:
+        # Visualize replay
+        states = replay_data["states"]
+        metadata = replay_data["metadata"]
+        
+        # Print replay info
+        print(f"Replay Info:")
+        print(f"Game Version: {metadata.get('game_version', 'unknown')}")
+        print(f"Player 1 Type: {metadata.get('player1_type', 'unknown')}")
+        print(f"Player 2 Type: {metadata.get('player2_type', 'unknown')}")
+        print(f"Difficulty: {metadata.get('difficulty', 'unknown')}")
+        if "seed" in metadata:
+            print(f"Seed: {metadata['seed']}")
+        print()
+        
+        # Visualize each state
+        for i, state in enumerate(states, 1):
+            print(f"\nTurn {i}")
+            # Create temporary game environment for visualization
+            temp_env = GameEnvironment(grid_size=18)
+            temp_env._set_state(state)  # Set the state from replay
+            viz.game_env = temp_env  # Update visualizer's game environment
+            viz.visualize_state(temp_env, None, None)  # Pass None for players as we don't have them in replay
+            if i < len(states):  # Don't delay after the last state
+                time.sleep(delay)
+        
+        # Print final result
+        if state["game_over"]:
+            print(f"\nGame Over! Winner: Player {state['winner']}")
+        else:
+            print("\nReplay ended without a winner")
     else:
-        player1 = Player(1, player1_deck)
-    
-    if player2_type.lower() == "ai":
-        player2 = AIPlayer(2, player2_deck, difficulty=difficulty)
-    else:
-        player2 = Player(2, player2_deck)
-    
-    # Create visualizer
-    visualizer = GameVisualizer(use_ascii=use_ascii, use_matplotlib=use_matplotlib, delay=delay)
-    
-    try:
+        # Create card decks for players
+        sample_cards = create_sample_cards()
+        random.shuffle(sample_cards)
+        
+        # Split cards evenly between players
+        half = len(sample_cards) // 2
+        player1_cards = sample_cards[:half]
+        player2_cards = sample_cards[half:]
+        
+        # Create player decks
+        player1_deck = CardDeck(player1_cards)
+        player2_deck = CardDeck(player2_cards)
+        
+        # Create players based on type
+        if player1_type.lower() == "ai":
+            player1 = AIPlayer(1, player1_deck, difficulty=difficulty)
+        else:
+            player1 = Player(1, player1_deck)
+        
+        if player2_type.lower() == "ai":
+            player2 = AIPlayer(2, player2_deck, difficulty=difficulty)
+        else:
+            player2 = Player(2, player2_deck)
+        
         # Main game loop
         for turn in range(1, turns + 1):
-            # PHASE 1: Process all unit movements first
-            # This includes resolving stalemates and moving units
+            print(f"\nTurn {turn}")
+            
+            # PHASE 1: Movement
             game_env._process_movements()
             
-            # Visualize the state after movements
-            visualizer.visualize_state(game_env, player1, player2)
-            
-            # PHASE 2: Process player actions (placing new units)
+            # PHASE 2: Unit Placement
             if isinstance(player1, AIPlayer):
                 player1.make_move(game_env)
-            
             if isinstance(player2, AIPlayer):
                 player2.make_move(game_env)
             
-            # PHASE 3: Process attacks and check win conditions
+            # PHASE 3: Attacks
             game_env._process_attacks()
             game_env._check_win_conditions()
             
-            # Generate elixir for players
+            # Generate elixir
             player1.generate_elixir()
             player2.generate_elixir()
             
-            # Visualize the final state after all actions
-            visualizer.visualize_state(game_env, player1, player2)
+            # Update visualizer's game environment and visualize
+            viz.game_env = game_env
+            viz.visualize_state(game_env, player1, player2)
             
             # Check if game is over
             if game_env.game_over:
-                # Show the final state a bit longer
-                time.sleep(2 * delay)
+                print(f"\nGame Over! Winner: Player {game_env.winner}")
                 break
-                
-    except KeyboardInterrupt:
-        print("\nVisualization stopped by user.")
-    
-    finally:
-        visualizer.close()
+            
+            # Delay between turns
+            time.sleep(delay)
 
 
 def main():
@@ -412,12 +460,12 @@ def main():
                        help="Delay between turns in seconds (default: 2.0)")
     parser.add_argument("--turns", type=int, default=100, 
                        help="Maximum number of turns (default: 100)")
-    parser.add_argument("--difficulty", type=int, choices=[1, 2, 3], default=1, 
-                       help="AI difficulty (1: Easy, 2: Medium, 3: Hard, default: 1)")
+    parser.add_argument("--difficulty", type=int, choices=[1, 2, 3], default=2, 
+                       help="AI difficulty (1: Easy, 2: Medium, 3: Hard, default: 2)")
     parser.add_argument("--ascii", action="store_true", default=True,
                        help="Use ASCII visualization (default: True)")
-    parser.add_argument("--plot", action="store_true", default=False,
-                       help="Use matplotlib visualization (default: False)")
+    parser.add_argument("--plot", action="store_true", default=True,
+                       help="Use matplotlib visualization (default: True)")
     
     args = parser.parse_args()
     
