@@ -101,10 +101,32 @@ class GameEnvironment:
             
             position = unit_data['position']
             owner = unit_data['owner']
+            card = unit_data['card']
             
-            # Determine movement direction based on owner
-            # Player 1 units move right (increasing position)
-            # Player 2 units move left (decreasing position)
+            # For ranged units (range > 1), check if there are enemies in range
+            if card.range > 1:
+                has_targets = False
+                # Check for enemy units in range
+                for target_id, target_data in self.units.items():
+                    if target_data['owner'] != owner:  # Enemy unit
+                        target_pos = target_data['position']
+                        distance = abs(target_pos - position)
+                        if distance <= card.range:
+                            has_targets = True
+                            break
+                
+                # Check for enemy tower in range
+                if not has_targets:
+                    if owner == 1 and position + card.range >= self.grid_size - 1:
+                        has_targets = True  # Player 1's unit can attack Player 2's tower
+                    elif owner == 2 and position - card.range <= 0:
+                        has_targets = True  # Player 2's unit can attack Player 1's tower
+                
+                # If ranged unit has targets in range, skip movement to allow attacking
+                if has_targets:
+                    continue
+            
+            # If not a ranged unit or no targets in range, proceed with movement
             direction = 1 if owner == 1 else -1
             new_position = position + direction
             

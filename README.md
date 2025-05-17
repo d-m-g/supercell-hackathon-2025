@@ -87,17 +87,18 @@ Options:
 - `--ascii-only`: Use only ASCII visualization
 - `--plot-only`: Use only graphical (matplotlib) visualization
 - `--both`: Use both ASCII and graphical visualization (default)
+- `--seed`: Random seed for reproducibility (optional)
 
 Examples:
 ```bash
 # Run with both ASCII and graphical visualization
 python visualize.py --both --delay 1.0
 
-# Run with only ASCII visualization
-python visualize.py --ascii-only --difficulty 2
+# Run with only ASCII visualization and a specific seed
+python visualize.py --ascii-only --difficulty 2 --seed 42
 
-# Run with only graphical visualization
-python visualize.py --plot-only --player1 human
+# Run with only graphical visualization and a specific seed
+python visualize.py --plot-only --player1 human --seed 123
 ```
 
 ### 2. Replay Recording
