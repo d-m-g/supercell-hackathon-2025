@@ -8,6 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import subprocess
 import requests
+import math
 from matplotlib.patches import Rectangle, Circle
 from pathlib import Path
 
@@ -295,6 +296,18 @@ def run_game_simulation():
     
     # Manual deployment button (if not AI player)
     if not st.session_state.game_state.player.is_ai:
+        # Create a placeholder for warnings that can be cleared
+        elixir_warning_placeholder = st.sidebar.empty()
+        
+        # Initialize warning timestamp if not exists
+        if 'warning_timestamp' not in st.session_state:
+            st.session_state.warning_timestamp = 0
+            
+        # Check if it's time to clear warning (2 seconds elapsed)
+        current_time = time.time()
+        if current_time - st.session_state.warning_timestamp > 2:
+            elixir_warning_placeholder.empty()
+            
         if st.sidebar.button(f"Deploy {selected_troop}"):
             # Calculate lane center
             lane_center = st.session_state.visualizer.SCREEN_WIDTH // 2
@@ -303,23 +316,33 @@ def run_game_simulation():
             lane_position = lane_center + random.randint(-lane_width//4, lane_width//4)
             
             # Try to deploy the troop
-            troop = st.session_state.game_state.player.deploy_troop(
-                selected_troop, 
-                'player',
-                lane_position
-            )
+            troop_cost = st.session_state.game_state.get_troop_cost(selected_troop)
+            player_elixir = st.session_state.game_state.player.elixir
             
-            if troop:
-                st.session_state.game_state.troops.append(troop)
-                st.session_state.game_state.replay_data["troops_spawned"].append({
-                    "tick": st.session_state.game_state.current_tick,
-                    "troop_id": id(troop),
-                    "troop_type": troop.troop_type,
-                    "team": troop.team,
-                    "position": troop.position.copy()
-                })
+            # Apply math.floor to handle floating point precision issues
+            if math.floor(player_elixir) >= troop_cost:
+                # Clear any previous warning
+                elixir_warning_placeholder.empty()
+                
+                troop = st.session_state.game_state.player.deploy_troop(
+                    selected_troop, 
+                    'player',
+                    lane_position
+                )
+                
+                if troop:
+                    st.session_state.game_state.troops.append(troop)
+                    st.session_state.game_state.replay_data["troops_spawned"].append({
+                        "tick": st.session_state.game_state.current_tick,
+                        "troop_id": id(troop),
+                        "troop_type": troop.troop_type,
+                        "team": troop.team,
+                        "position": troop.position.copy()
+                    })
             else:
-                st.sidebar.warning(f"Not enough elixir! Need {st.session_state.game_state.get_troop_cost(selected_troop)}")
+                elixir_warning_placeholder.warning(f"Not enough elixir! Need {troop_cost}, have {math.floor(player_elixir)}")
+                # Set warning timestamp when displayed
+                st.session_state.warning_timestamp = current_time
     
     # Update game state
     current_time = time.time()
