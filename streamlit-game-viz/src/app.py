@@ -7,6 +7,7 @@ import random
 import numpy as np
 import matplotlib.pyplot as plt
 import subprocess
+import requests
 from matplotlib.patches import Rectangle, Circle
 from pathlib import Path
 
@@ -415,22 +416,13 @@ def run_game_simulation():
                                 # Show which card the player struggled against the most
                                 st.markdown(f"**You struggled the most against: {best_card.capitalize()}**")
                                 
-                                # Add tips section if any score is above 2
+                                # Add tips section if any score is above 0
                                 if df['Performance'].max() > 0:
-                                    st.subheader("Tips")
+                                    st.subheader("Tips from AI Coach")
                                     
-                                    if best_card == "giant":
-                                        st.markdown("- Giants are tanky but slow. Use swarm units like Goblins to counter them efficiently.")
-                                        st.markdown("- Place troops behind your tower to avoid splash damage.")
-                                    elif best_card == "knight":
-                                        st.markdown("- Knights are balanced units. Counter them with ranged units like Archers.")
-                                        st.markdown("- Keep your distance and avoid direct confrontation.")
-                                    elif best_card == "archer":
-                                        st.markdown("- Archers attack from range. Use fast units like Goblins to close the gap quickly.")
-                                        st.markdown("- Deploy troops close to them to minimize their advantage.")
-                                    elif best_card == "goblin":
-                                        st.markdown("- Goblins are cheap and fast. Use area damage or ranged units to counter them.")
-                                        st.markdown("- Group your troops to prevent them from being overwhelmed.")
+                                    # Get personalized tips from fine-tuned LLM
+                                    tips = get_personalized_tips(performance)
+                                    st.markdown(tips)
                         else:
                             # If string output from subprocess
                             st.text(performance)
@@ -439,6 +431,80 @@ def run_game_simulation():
     if not st.session_state.game_state.game_over:
         time.sleep(0.1)  # Small delay to prevent too many refreshes
         st.rerun()
+
+def get_personalized_tips(performance_data, replay_data=None):
+    """
+    Get personalized tips from a fine-tuned LLM based on game performance.
+    
+    Args:
+        performance_data: Dictionary of troop performance values
+        replay_data: Optional replay data for more context
+        
+    Returns:
+        String containing personalized tips
+    """
+    # Sort troops by performance to find what was most effective
+    sorted_troops = sorted(performance_data.items(), key=lambda x: x[1], reverse=True)
+    best_troop = sorted_troops[0][0] if sorted_troops else "unknown"
+    best_score = sorted_troops[0][1] if sorted_troops else 0
+    
+    # Create prompt for the LLM - focus only on the card user struggles against most
+    prompt = f"""
+    You struggled against the enemy {best_troop.capitalize()} card (score: {best_score}).
+    
+    Please provide 3 specific tips to help me counter the {best_troop} card more effectively in Clash Royale.
+    """
+    
+    try:
+        # Assuming an API endpoint for your fine-tuned LLM
+        # In a real implementation, replace with actual API call
+        # response = requests.post("https://your-llm-api-endpoint", json={"prompt": prompt})
+        # tips = response.json()["response"]
+        
+        # Simulated response for now
+        tips = f"""
+        Tips for countering {best_troop.capitalize()}:
+        
+        1. {best_troop.capitalize()} cards are particularly effective because of their {get_strength(best_troop)}. Try deploying {get_counter(best_troop)} as a counter.
+        
+        2. Adjust your timing - deploy your troops only after the enemy {best_troop} crosses the river to maximize your elixir efficiency.
+        
+        3. If you're struggling with {best_troop} cards, consider adding {get_recommended_card(best_troop)} to your deck as they're particularly effective counters.
+        """
+        
+        return tips
+    except Exception as e:
+        return f"Error generating tips: {str(e)}\n\nGeneral tip: Try mixing up your strategy with different troop combinations."
+
+def get_strength(troop_type):
+    """Helper function to describe troop strengths"""
+    strengths = {
+        "giant": "high health and area damage",
+        "knight": "balanced stats and cost-effectiveness",
+        "archer": "ranged attacks and ability to target air units",
+        "goblin": "fast movement speed and low cost"
+    }
+    return strengths.get(troop_type, "unique abilities")
+
+def get_counter(troop_type):
+    """Helper function to suggest counter troops"""
+    counters = {
+        "giant": "swarm units like Goblins or buildings to distract",
+        "knight": "ranged units like Archers or high damage troops",
+        "archer": "fast units that can close the gap quickly",
+        "goblin": "area damage troops or spells"
+    }
+    return counters.get(troop_type, "a mix of different troop types")
+
+def get_recommended_card(troop_type):
+    """Helper function to recommend specific cards"""
+    recommendations = {
+        "giant": "Inferno Tower or Minion Horde",
+        "knight": "Valkyrie or Mini P.E.K.K.A",
+        "archer": "Knight or Giant",
+        "goblin": "Valkyrie or Arrows"
+    }
+    return recommendations.get(troop_type, "defensive buildings or air troops")
 
 def main():
     st.set_page_config(
