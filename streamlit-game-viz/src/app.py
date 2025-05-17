@@ -186,9 +186,7 @@ class StreamlitVisualizer:
         elixir_ratio = player.elixir / self.PLAYER_ELIXIR_MAX
         ax.add_patch(Rectangle((0, 0), width * elixir_ratio, height, facecolor=self.colors['elixir']))
         
-        # Add text
-        ax.text(width/2, height/2, f"Elixir: {int(player.elixir)}/{self.PLAYER_ELIXIR_MAX}", 
-                ha='center', va='center', color='white', fontweight='bold')
+        # Remove the text inside the bar
         
         ax.set_xlim(0, width)
         ax.set_ylim(0, height)
@@ -362,6 +360,8 @@ def run_game_simulation():
     # Display elixir bar
     elixir_col, _ = st.columns([1, 3])
     with elixir_col:
+        # Display elixir amount as a text label above the bar
+        st.text(f"Elixir: {int(st.session_state.game_state.player.elixir)}/{st.session_state.visualizer.PLAYER_ELIXIR_MAX}")
         elixir_fig = st.session_state.visualizer.draw_elixir_bar(
             st.session_state.game_state.player, 
             20, 
@@ -428,9 +428,6 @@ def run_game_simulation():
                             df = pd.DataFrame(performance.items(), columns=['Troop', 'Performance'])
                             df = df.sort_values('Performance', ascending=False)
                             
-                            # Show as table
-                            st.table(df)
-                            
                             # Find the highest performing card
                             if not df.empty:
                                 best_card = df.iloc[0]['Troop']
@@ -439,13 +436,23 @@ def run_game_simulation():
                                 # Show which card the player struggled against the most
                                 st.markdown(f"**You struggled the most against: {best_card.capitalize()}**")
                                 
-                                # Add tips section if any score is above -0.5
-                                if df['Performance'].max() >= -0.5:
+                                # Add tips section if any score is above 0
+                                if df['Performance'].max() > 0:
                                     st.subheader("Tips from AI Coach")
                                     
                                     # Get personalized tips from fine-tuned LLM
                                     tips = get_personalized_tips(performance)
                                     st.markdown(tips)
+                                    
+                                    # Only show table if user expands the section
+                                    with st.expander("View detailed performance analysis"):
+                                        st.table(df)
+                                else:
+                                    st.success("You're doing well against all enemy cards! Keep up the good strategy.")
+                                    
+                                    # Only show table if user expands the section
+                                    with st.expander("View detailed performance analysis"):
+                                        st.table(df)
                         else:
                             # If string output from subprocess
                             st.text(performance)
