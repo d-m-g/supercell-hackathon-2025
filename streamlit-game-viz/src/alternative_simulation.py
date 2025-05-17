@@ -629,13 +629,15 @@ class GameState:
         return troop_costs.get(troop_type, 2)
 
     def save_replay(self):
-        # Create replays directory if it doesn't exist
-        if not os.path.exists("replays"):
-            os.makedirs("replays")
+        # Save to the replays directory at the project root
+        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+        replay_dir = os.path.join(project_root, "replays")
+        if not os.path.exists(replay_dir):
+            os.makedirs(replay_dir)
         
         # Generate filename with timestamp
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"replays/clash_replay_{timestamp}.json"
+        filename = os.path.join(replay_dir, f"clash_replay_{timestamp}.json")
         
         # Save replay data to JSON file
         with open(filename, 'w') as f:
