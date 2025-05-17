@@ -14,15 +14,12 @@ from src.game.environment import GameEnvironment
 from src.game.card import Card, CardDeck, create_sample_cards
 from src.game.player import Player, AIPlayer
 
-# Seed the random number generator for reproducibility (optional)
-random.seed()
-
 class GameVisualizer:
     """
     Visualizes the game state in real-time.
     """
     
-    def __init__(self, game_env=None, use_ascii=True, use_matplotlib=False, delay=0.5):
+    def __init__(self, game_env=None, use_ascii=True, use_matplotlib=False, delay=0.5, streamlit_mode=False):
         """
         Initialize the visualizer.
         
@@ -31,16 +28,25 @@ class GameVisualizer:
             use_ascii: Whether to use ASCII representation
             use_matplotlib: Whether to use matplotlib for visualization
             delay: Delay between turns in seconds
+            streamlit_mode: Whether to use Streamlit for visualization
         """
         self.game_env = game_env
-        self.use_ascii = use_ascii
+        self.use_ascii = use_ascii and not streamlit_mode
         self.use_matplotlib = use_matplotlib
         self.delay = delay
+        self.streamlit_mode = streamlit_mode
         self.fig = None
         self.ax = None
+        self.current_state = {
+            "turn": 0,
+            "score": 0,
+            "plot": None,
+            "game_over": False
+        }
         
         if use_matplotlib:
-            plt.ion()  # Turn on interactive mode
+            if not streamlit_mode:
+                plt.ion()  # Turn on interactive mode
             self.fig, self.ax = plt.subplots(figsize=(18, 4))  # Wider figure for 18x1 grid
             self.setup_plot()
     
@@ -187,21 +193,57 @@ class GameVisualizer:
         print("Note: Units that moved this turn (🔷/🔶) cannot attack until next turn")
         print("Note: Players cannot play the same card twice in a row")
         print("Note: Units can attack any enemy within their range")
-    
+
     def _visualize_matplotlib(self, game_env, player1=None, player2=None):
         """
         Visualize the game state using matplotlib.
         
         Args:
             game_env: GameEnvironment instance
-            player1: Optional Player 1 instance (None for replay visualization)
-            player2: Optional Player 2 instance (None for replay visualization)
+            player1: Optional Player 1 instance
+            player2: Optional Player 2 instance
         """
         if not self.use_matplotlib:
             return
             
         self.ax.clear()
         self.setup_plot()
+        
+        # Update state for visualization
+        self.current_state["turn"] = game_env.turn_count
+        
+        # Calculate score based on tower health differences
+        try:
+            # First try to get towers from the attribute
+            if hasattr(game_env, 'towers'):
+                player_tower = next((t for t in game_env.towers if t.team == 'player'), None)
+                enemy_tower = next((t for t in game_env.towers if t.team == 'enemy'), None)
+            # If that fails, try getting them from grid state
+            elif hasattr(game_env, 'grid'):
+                player_tower_cell = next((i for i, cell in enumerate(game_env.grid) if cell == 'T1'), None)
+                enemy_tower_cell = next((i for i, cell in enumerate(game_env.grid) if cell == 'T2'), None)
+                if player_tower_cell is not None and enemy_tower_cell is not None:
+                    player_tower = {"hp": 100, "max_hp": 100}  # Using default values
+                    enemy_tower = {"hp": 100, "max_hp": 100}
+                else:
+                    player_tower = None
+                    enemy_tower = None
+            else:
+                player_tower = None
+                enemy_tower = None
+                
+            if player_tower and enemy_tower:
+                player_health = player_tower.hp / player_tower.max_hp if hasattr(player_tower, 'hp') else player_tower["hp"] / player_tower["max_hp"]
+                enemy_health = enemy_tower.hp / enemy_tower.max_hp if hasattr(enemy_tower, 'hp') else enemy_tower["hp"] / enemy_tower["max_hp"]
+                score = player_health * 100 - enemy_health * 100
+            else:
+                score = 0
+        except Exception as e:
+            print(f"Error calculating score: {e}")
+            score = 0
+            
+        self.current_state["score"] = round(score, 1)
+        self.current_state["game_over"] = True if hasattr(game_env, 'game_over') and game_env.game_over else False
         
         # Plot the grid
         for i in range(game_env.grid_size):
@@ -323,9 +365,12 @@ class GameVisualizer:
                      ha='center', va='center', fontsize=16, color='green',
                      bbox=dict(facecolor='white', alpha=0.8))
         
-        # Update the plot
-        self.fig.canvas.draw()
-        plt.pause(0.01)
+        if self.streamlit_mode:
+            self.current_state["plot"] = self.fig
+        else:
+            # Update the plot
+            self.fig.canvas.draw()
+            plt.pause(0.01)
     
     def close(self):
         """Close the visualizer."""
@@ -482,4 +527,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main() 
+    main()
