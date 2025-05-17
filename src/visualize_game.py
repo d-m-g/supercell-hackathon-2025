@@ -284,14 +284,17 @@ def run_visualization(player1_type="ai", player2_type="ai", delay=2.0, turns=100
     # Create card decks for players
     sample_cards = create_sample_cards()
     
-    # Shuffle the cards for fair distribution
-    random.shuffle(sample_cards)
+    # # Shuffle the cards for fair distribution
+    # random.shuffle(sample_cards)
     
-    # Split cards evenly between players after shuffling
-    half = len(sample_cards) // 2
-    player1_cards = sample_cards[:half]
-    player2_cards = sample_cards[half:]
-    
+    # # Split cards evenly between players after shuffling
+    # half = len(sample_cards) // 2
+    # player1_cards = sample_cards[:half]
+    # player2_cards = sample_cards[half:]
+
+    # Custom made deck for testing
+    player1_cards = [sample_cards[4], sample_cards[1], sample_cards[5]]
+    player2_cards = [sample_cards[2], sample_cards[3], sample_cards[0]]
     # Ensure both players have cards with a good mix of attributes
     player1_deck = CardDeck(player1_cards)
     player2_deck = CardDeck(player2_cards)
