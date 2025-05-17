@@ -5,7 +5,7 @@ class GameEnvironment:
     Manages the game grid, towers, and core game mechanics.
     """
     
-    def __init__(self, grid_size=10):
+    def __init__(self, grid_size=18):
         # Initialize the grid with zeros (empty spaces)
         self.grid_size = grid_size
         self.grid = [0] * grid_size
@@ -194,46 +194,66 @@ class GameEnvironment:
                             self.moved_units.add(left_cell)
     
     def _process_attacks(self):
-        """Process attacks for all units."""
-        # Make a copy of the units to avoid modification during iteration
-        units_to_process = list(self.units.items())
+        """Process all attacks for units that haven't moved this turn."""
+        # Make a copy of units to avoid modification during iteration
+        units_copy = dict(self.units)
         
-        for unit_id, unit_data in units_to_process:
-            # Skip if unit was destroyed during this turn
-            if unit_id not in self.units:
-                continue
-                
-            # Skip if the unit moved this turn (units can either move OR attack in a turn)
+        for unit_id, unit_data in units_copy.items():
+            # Skip units that moved this turn
             if unit_id in self.moved_units:
                 continue
                 
             position = unit_data['position']
             owner = unit_data['owner']
+            card = unit_data['card']
             
-            # Determine attack direction and target position
-            direction = 1 if owner == 1 else -1
-            target_position = position + direction
-            
-            # Check if target is within bounds
-            if 0 <= target_position < self.grid_size:
-                target = self.grid[target_position]
+            # Find targets within range
+            targets = []
+            for target_id, target_data in units_copy.items():
+                # Skip if target is on the same team
+                if target_data['owner'] == owner:
+                    continue
+                    
+                target_pos = target_data['position']
+                distance = abs(target_pos - position)
                 
-                # Check if target is a unit or tower
-                if target != 0:
-                    if target == 'T1' and owner == 2:
-                        # Player 2 wins if they damage player 1's tower
-                        self.game_over = True
-                        self.winner = 2
-                    elif target == 'T2' and owner == 1:
-                        # Player 1 wins if they damage player 2's tower
-                        self.game_over = True
-                        self.winner = 1
-                    elif isinstance(target, int) and target in self.units:
-                        # Check if the target is an enemy unit (no friendly fire)
-                        target_owner = self.units[target]['owner']
-                        if target_owner != owner:  # Only attack enemy units
-                            self._attack_unit(unit_id, target)
-    
+                # Check if target is within range
+                if distance <= card.range:
+                    targets.append((target_id, distance))
+            
+            # If no enemy units in range, check for tower
+            if not targets:
+                if owner == 1 and position + card.range >= self.grid_size - 1:
+                    # Player 1's unit can attack Player 2's tower
+                    self._attack_tower(unit_id, 2)
+                elif owner == 2 and position - card.range <= 0:
+                    # Player 2's unit can attack Player 1's tower
+                    self._attack_tower(unit_id, 1)
+                continue
+            
+            # Sort targets by distance (closest first)
+            targets.sort(key=lambda x: x[1])
+            
+            # Attack the closest target
+            self._attack_unit(unit_id, targets[0][0])
+
+    def _attack_tower(self, attacker_id, tower_player):
+        """Process an attack on a tower."""
+        if attacker_id not in self.units:
+            return
+            
+        attacker = self.units[attacker_id]['card']
+        
+        # Apply damage to tower
+        if tower_player == 1:
+            self.grid[0] = 'T1'  # Tower is destroyed
+            self.game_over = True
+            self.winner = 2
+        else:
+            self.grid[-1] = 'T2'  # Tower is destroyed
+            self.game_over = True
+            self.winner = 1
+
     def _attack_unit(self, attacker_id, defender_id):
         """Process an attack between two units."""
         # Verify both units still exist
@@ -269,6 +289,7 @@ class GameEnvironment:
                 'card_cost': data['card'].cost,
                 'hp': data['card'].hp,
                 'attack': data['card'].attack,
+                'range': data['card'].range,
                 'owner': data['owner'],
                 'moved_this_turn': uid in self.moved_units
             } for uid, data in self.units.items()},

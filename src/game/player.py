@@ -12,6 +12,7 @@ class Player:
         self.next_card_index = 0
         self.max_units = max_units  # Maximum number of units a player can have on the field
         self.last_played_card = None  # Track the last card played by this player
+        self.elixir_counter = 0  # Counter for fractional elixir generation
         
         # Initialize hand with 4 cards
         self._refill_hand()
@@ -26,9 +27,17 @@ class Player:
             if self.next_card_index >= len(self.deck):
                 self.next_card_index = 0
     
-    def generate_elixir(self, amount=1):
-        """Generate elixir for the player (called each turn)."""
-        self.elixir = min(self.elixir + amount, self.max_elixir)
+    def generate_elixir(self, amount=1/3):
+        """
+        Generate elixir for the player (called each turn).
+        Now generates 1/3 elixir per turn, accumulating until a full elixir is generated.
+        """
+        self.elixir_counter += amount
+        if self.elixir_counter >= 1:
+            # Generate a full elixir and reset the counter
+            self.elixir = min(self.elixir + 1, self.max_elixir)
+            self.elixir_counter = 0
+        
         # Reset last played card at the start of a new turn
         self.last_played_card = None
     

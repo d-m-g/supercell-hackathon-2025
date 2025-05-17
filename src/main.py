@@ -26,7 +26,7 @@ def run_game(player1_type="human", player2_type="ai", turns=100, difficulty=2):
         Path to the saved replay file
     """
     # Initialize game environment
-    game_env = GameEnvironment(grid_size=10)
+    game_env = GameEnvironment(grid_size=18)  # Updated to 18x1 grid
     
     # Create card decks for players
     sample_cards = create_sample_cards()
@@ -54,6 +54,7 @@ def run_game(player1_type="human", player2_type="ai", turns=100, difficulty=2):
     recorder.add_metadata("player1_type", player1_type)
     recorder.add_metadata("player2_type", player2_type)
     recorder.add_metadata("difficulty", difficulty)
+    recorder.add_metadata("grid_size", 18)  # Add grid size to metadata
     
     # Main game loop
     for turn in range(1, turns + 1):
