@@ -1,8 +1,6 @@
-numpy>=1.26.0
-matplotlib>=3.8.0
-streamlit
-pandas
-matplotlib
-seaborn
-pygame
-pyautogui
+streamlit==1.34.0
+matplotlib==3.8.2
+numpy==1.26.3
+pandas==2.2.0
+pygame==2.5.2
+requests==2.31.0

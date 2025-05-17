@@ -4,8 +4,17 @@ import json
 import os
 from datetime import datetime
 import time
-import pyautogui
 import sys
+
+# Check if running in Streamlit Cloud environment
+is_streamlit_cloud = os.environ.get('STREAMLIT_RUNTIME_ENV') == 'cloud'
+
+# Only import pyautogui if we're in a local environment with a display
+try:
+    if not is_streamlit_cloud:
+        import pyautogui
+except ImportError:
+    print("PyAutoGUI not available or display not detected")
 
 # Initialize Pygame in headless mode for Streamlit - set these BEFORE pygame.init()
 os.environ['SDL_VIDEODRIVER'] = 'dummy'
