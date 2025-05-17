@@ -3,8 +3,7 @@ import random
 import json
 import os
 from datetime import datetime
-import time
-import pyautogui
+import json
 
 # Initialize Pygame
 pygame.init()
@@ -167,38 +166,48 @@ class Troop:
         self.set_troop_stats()
 
     def set_troop_stats(self):
-        if self.troop_type == "Knight":
-            self.hp = 600
-            self.max_hp = 600
-            self.attack_damage = 80
-            self.attack_speed = 1.2
-            self.move_speed = 40
-            self.attack_range = 60
-            self.size = 35
-        elif self.troop_type == "Archer":
-            self.hp = 250
-            self.max_hp = 250
-            self.attack_damage = 50
-            self.attack_speed = 1.8
-            self.move_speed = 60
-            self.attack_range = 200
-            self.size = 30
-        elif self.troop_type == "Giant":
-            self.hp = 1200
-            self.max_hp = 1200
-            self.attack_damage = 120
-            self.attack_speed = 0.8
-            self.move_speed = 30
-            self.attack_range = 70
-            self.size = 45
-        elif self.troop_type == "Goblin":
-            self.hp = 150
-            self.max_hp = 150
-            self.attack_damage = 35
-            self.attack_speed = 2.0
-            self.move_speed = 80
-            self.attack_range = 40
-            self.size = 25
+        with open("troop_stats.json") as file:
+            data = json.load(file)
+            self.hp = data[self.troop_type]["max_hp"]
+            self.max_hp = data[self.troop_type]["max_hp"]
+            self.attack_damage = data[self.troop_type]["attack_damage"]
+            self.attack_speed = data[self.troop_type]["attack_speed"]
+            self.movement_speed = data[self.troop_type]["movement_speed"]
+            self.rangeattack_range = data[self.troop_type]["range"]
+            self.size = data[self.troop_type]["size"]
+            
+        # if self.troop_type == "Knight":
+        #     self.hp = 600
+        #     self.max_hp = 600
+        #     self.attack_damage = 80
+        #     self.attack_speed = 1.2
+        #     self.move_speed = 40
+        #     self.attack_range = 60
+        #     self.size = 35
+        # elif self.troop_type == "Archer":
+        #     self.hp = 250
+        #     self.max_hp = 250
+        #     self.attack_damage = 50
+        #     self.attack_speed = 1.8
+        #     self.move_speed = 60
+        #     self.attack_range = 200
+        #     self.size = 30
+        # elif self.troop_type == "Giant":
+        #     self.hp = 1200
+        #     self.max_hp = 1200
+        #     self.attack_damage = 120
+        #     self.attack_speed = 0.8
+        #     self.move_speed = 30
+        #     self.attack_range = 70
+        #     self.size = 45
+        # elif self.troop_type == "Goblin":
+        #     self.hp = 150
+        #     self.max_hp = 150
+        #     self.attack_damage = 35
+        #     self.attack_speed = 2.0
+        #     self.move_speed = 80
+        #     self.attack_range = 40
+        #     self.size = 25
 
     def draw(self):
         troop_color = BLUE if self.team == 'player' else RED
