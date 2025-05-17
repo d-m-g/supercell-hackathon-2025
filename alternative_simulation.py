@@ -4,17 +4,22 @@ import json
 import os
 from datetime import datetime
 import time
+import pyautogui
 
 # Initialize Pygame
 pygame.init()
+
+# Simulation settings
+AUTO_RESTART = True  # Automatically save replays
 
 # Game constants
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 LANE_WIDTH = 120
-GAME_SPEED = 1.0  # Simulation speed multiplier
+GAME_SPEED = 10.0  # Simulation speed multiplier
 TICK_RATE = 60  # Game logic ticks per second
 FPS = 60 * GAME_SPEED  # Frames per second for rendering
+TOWER_DAMAGE = 30  # Defaul 30
 
 # Colors
 WHITE = (255, 255, 255)
@@ -41,7 +46,7 @@ clock = pygame.time.Clock()
 font = pygame.font.SysFont('Arial', 18)
 
 class Tower:
-    def __init__(self, position, hp, team, attack_damage=30, attack_speed=1.5, attack_range=200):
+    def __init__(self, position, hp, team, attack_damage=TOWER_DAMAGE, attack_speed=1.5, attack_range=200):
         self.position = position
         self.max_hp = hp
         self.hp = hp
@@ -122,15 +127,15 @@ class Tower:
                 if hasattr(closest_troop.target, 'troop_type'):
                     target_target_type = f"{closest_troop.target.troop_type}_{closest_troop.target.team}"
                 else:
-                    target_target_type = f"{closest_troop.target.team}_tower"
+                    target_target_type = f"Tower_ {closest_troop.target.team}"
             
             # Return attack data for replay
             return {
                 "tick": current_tick,
                 "attacker_id": id(self),
-                "attacker_type": f"{self.team}_tower",
+                "attacker_type": f"Tower_{self.team}",
                 "target_id": id(closest_troop),
-                "target_type": closest_troop.troop_type,
+                "target_type": f"{closest_troop.troop_type}_{closest_troop.team}",
                 "damage": self.attack_damage,
                 "target_target_id": target_target_id,
                 "target_target_type": target_target_type
@@ -407,8 +412,8 @@ class Player:
                 
                 # Deploy in the middle of the lane with small random offset
                 lane_position = SCREEN_WIDTH // 2 + random.randint(-20, 20)
+                self.next_troop = None  # Reset next troop after deploying
                 return self.deploy_troop(troop_type, 'enemy', lane_position)
-            self.next_troop = None  # Reset next troop after deploying
         
         return None
 
@@ -594,6 +599,7 @@ class GameState:
             restart_text = font.render("Press R to restart", True, BLACK)
             restart_text_rect = restart_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 50))
             screen.blit(restart_text, restart_text_rect)
+            
         
         # Update display
         pygame.display.flip()
@@ -657,7 +663,7 @@ def replay_viewer(replay_file):
         print(f"Tick {death['tick']}: {death['team']} {death['troop_type']} died")
 
 
-def main():
+def main(n=1):
     game_state = GameState()
     running = True
     
@@ -724,7 +730,7 @@ def main():
         game_state.draw()
     
     # Save replay before quitting
-    if not game_state.game_over:
+    if game_state.game_over:
         game_state.save_replay()
     
     pygame.quit()
