@@ -9,6 +9,10 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle, Circle
 from pathlib import Path
 
+# Set matplotlib to use a lower DPI to avoid DecompressionBombError
+plt.rcParams['figure.dpi'] = 72
+plt.rcParams['savefig.dpi'] = 72
+
 # Modify the import path to use the local version in src directory
 current_dir = os.path.dirname(os.path.abspath(__file__))
 if current_dir not in sys.path:
@@ -39,13 +43,13 @@ class StreamlitVisualizer:
         
     def visualize_game_state(self, game_state):
         """Visualize the current game state using matplotlib"""
-        fig, ax = plt.subplots(figsize=(10, 7.5))
-        
+        fig, ax = plt.subplots(figsize=(8, 6), dpi=72)
+
         # Set background
         ax.set_facecolor(self.colors['background'])
         ax.set_xlim(0, self.SCREEN_WIDTH)
         ax.set_ylim(0, self.SCREEN_HEIGHT)
-        
+    
         # Draw lane
         lane_rect = Rectangle(
             ((self.SCREEN_WIDTH - self.LANE_WIDTH) // 2, 0),
@@ -74,6 +78,7 @@ class StreamlitVisualizer:
                    color=self.colors[game_state.winner],
                    bbox=dict(facecolor='white', alpha=0.8))
         
+        plt.tight_layout()
         return fig
     
     def _draw_tower(self, ax, tower):
@@ -154,7 +159,7 @@ class StreamlitVisualizer:
 
     def draw_elixir_bar(self, player, x_pos, y_pos, width=200, height=20):
         """Create a matplotlib figure for an elixir bar"""
-        fig, ax = plt.subplots(figsize=(width/50, height/50))
+        fig, ax = plt.subplots(figsize=(width/50, height/50), dpi=72)
         
         # Draw elixir background
         ax.add_patch(Rectangle((0, 0), width, height, facecolor='white', edgecolor='black'))
@@ -171,27 +176,54 @@ class StreamlitVisualizer:
         ax.set_ylim(0, height)
         ax.axis('off')
         
+        plt.tight_layout()
         return fig
+
+def reset_game():
+    """Reset the game state completely"""
+    # Create a new game state
+    st.session_state.game_state = GameState()
+    
+    # Preserve AI setting
+    if 'player_ai' in st.session_state:
+        st.session_state.game_state.player.is_ai = st.session_state.player_ai
+    else:
+        st.session_state.game_state.player.is_ai = False
+    
+    # Reset other state
+    st.session_state.game_tick = 0
+    st.session_state.last_update_time = time.time()
+    
+    # Clear any figures
+    plt.close('all')
 
 def run_game_simulation():
     """Run the game simulation with Streamlit integration"""
     # Initialize session state if it doesn't exist
     if 'game_state' not in st.session_state:
         st.session_state.game_state = GameState()
+        # Update player to not be AI for manual control
+        st.session_state.game_state.player.is_ai = False
         st.session_state.visualizer = StreamlitVisualizer()
         st.session_state.game_tick = 0
         st.session_state.last_update_time = time.time()
         st.session_state.game_speed = 1.0
+        st.session_state.player_ai = False
     
     # Game speed control
     st.sidebar.title("Game Controls")
     game_speed = st.sidebar.slider("Game Speed", min_value=0.1, max_value=5.0, value=st.session_state.game_speed, step=0.1)
     st.session_state.game_speed = game_speed
     
+    # AI toggle
+    player_ai = st.sidebar.checkbox("AI Player", value=st.session_state.game_state.player.is_ai)
+    if player_ai != st.session_state.game_state.player.is_ai:
+        st.session_state.game_state.player.is_ai = player_ai
+    st.session_state.player_ai = player_ai
+    
     # Restart button
     if st.sidebar.button("Restart Game"):
-        st.session_state.game_state = GameState()
-        st.session_state.game_tick = 0
+        reset_game()
     
     # Troop selection for manual deployment (sidebar)
     st.sidebar.title("Troop Selection")
@@ -209,6 +241,34 @@ def run_game_simulation():
     st.sidebar.text(f"Damage: {dummy_troop.attack_damage}")
     st.sidebar.text(f"Attack Speed: {dummy_troop.attack_speed}")
     st.sidebar.text(f"Cost: {st.session_state.game_state.get_troop_cost(selected_troop)}")
+    
+    # Manual deployment button (if not AI player)
+    if not st.session_state.game_state.player.is_ai:
+        if st.sidebar.button(f"Deploy {selected_troop}"):
+            # Calculate lane center
+            lane_center = st.session_state.visualizer.SCREEN_WIDTH // 2
+            lane_width = st.session_state.visualizer.LANE_WIDTH
+            # Random position within the lane
+            lane_position = lane_center + random.randint(-lane_width//4, lane_width//4)
+            
+            # Try to deploy the troop
+            troop = st.session_state.game_state.player.deploy_troop(
+                selected_troop, 
+                'player',
+                lane_position
+            )
+            
+            if troop:
+                st.session_state.game_state.troops.append(troop)
+                st.session_state.game_state.replay_data["troops_spawned"].append({
+                    "tick": st.session_state.game_state.current_tick,
+                    "troop_id": id(troop),
+                    "troop_type": troop.troop_type,
+                    "team": troop.team,
+                    "position": troop.position.copy()
+                })
+            else:
+                st.sidebar.warning(f"Not enough elixir! Need {st.session_state.game_state.get_troop_cost(selected_troop)}")
     
     # Update game state
     current_time = time.time()
@@ -267,6 +327,10 @@ def run_game_simulation():
         if st.button("Save Replay"):
             replay_path = st.session_state.game_state.save_replay()
             st.success(f"Replay saved to {replay_path}")
+        
+        if st.button("New Game"):
+            reset_game()
+            st.experimental_rerun()
     
     # Auto-refresh to update game state
     if not st.session_state.game_state.game_over:
