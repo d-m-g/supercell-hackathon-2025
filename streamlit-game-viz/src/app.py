@@ -396,7 +396,7 @@ def run_game_simulation():
                     if error:
                         st.error(error)
                     else:
-                        st.subheader("Troop Performance Analysis")
+                        st.subheader("Enemy Card Performance")
                         
                         if isinstance(performance, dict):
                             # Create a dataframe for better display
@@ -407,22 +407,30 @@ def run_game_simulation():
                             # Show as table
                             st.table(df)
                             
-                            # Show as bar chart
-                            fig, ax = plt.subplots(figsize=(8, 4))
-                            bars = ax.bar(df['Troop'], df['Performance'])
-                            
-                            # Color the bars (green for positive, red for negative)
-                            for i, bar in enumerate(bars):
-                                if df['Performance'].iloc[i] > 0:
-                                    bar.set_color('green')
-                                else:
-                                    bar.set_color('red')
+                            # Find the highest performing card
+                            if not df.empty:
+                                best_card = df.iloc[0]['Troop']
+                                best_score = df.iloc[0]['Performance']
+                                
+                                # Show which card the player struggled against the most
+                                st.markdown(f"**You struggled the most against: {best_card.capitalize()}**")
+                                
+                                # Add tips section if any score is above 2
+                                if df['Performance'].max() > 0:
+                                    st.subheader("Tips")
                                     
-                            ax.set_title("Troop Performance Analysis")
-                            ax.set_ylabel("Performance Score")
-                            plt.tight_layout()
-                            
-                            st.pyplot(fig)
+                                    if best_card == "giant":
+                                        st.markdown("- Giants are tanky but slow. Use swarm units like Goblins to counter them efficiently.")
+                                        st.markdown("- Place troops behind your tower to avoid splash damage.")
+                                    elif best_card == "knight":
+                                        st.markdown("- Knights are balanced units. Counter them with ranged units like Archers.")
+                                        st.markdown("- Keep your distance and avoid direct confrontation.")
+                                    elif best_card == "archer":
+                                        st.markdown("- Archers attack from range. Use fast units like Goblins to close the gap quickly.")
+                                        st.markdown("- Deploy troops close to them to minimize their advantage.")
+                                    elif best_card == "goblin":
+                                        st.markdown("- Goblins are cheap and fast. Use area damage or ranged units to counter them.")
+                                        st.markdown("- Group your troops to prevent them from being overwhelmed.")
                         else:
                             # If string output from subprocess
                             st.text(performance)
