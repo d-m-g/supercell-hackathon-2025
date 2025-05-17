@@ -73,10 +73,10 @@ class CardDeck:
 def create_sample_cards():
     """Create a set of sample cards for testing."""
     return [
-        Card("Knight", attack=5, hp=10, cost=3, range=1),  # Melee unit
+        Card("Knight", attack=5, hp=10, cost=5, range=1),  # Melee unit
         Card("Archer", attack=4, hp=4, cost=2, range=3),   # Ranged unit
-        Card("Giant", attack=10, hp=20, cost=5, range=1),  # Melee tank
-        Card("Goblin", attack=4, hp=8, cost=1, range=1),   # Melee unit
-        Card("Wizard", attack=3, hp=5, cost=4, range=2),   # Medium range
+        Card("Giant", attack=10, hp=20, cost=6, range=1),  # Melee tank
+        Card("Goblin", attack=4, hp=5, cost=4, range=1),   # Melee unit
+        Card("Wizard", attack=3, hp=5, cost=3, range=2),   # Medium range
         Card("Skeleton", attack=2, hp=1, cost=1, range=1), # Melee unit
     ] 

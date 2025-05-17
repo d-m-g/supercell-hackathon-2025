@@ -82,17 +82,14 @@ class GameEnvironment:
         # Check for stalemate situation (1-cell gap between opposing units)
         self._resolve_stalemates()
         
-        # Sort units by position to prevent movement conflicts - but in different orders
-        # for different players to prevent gridlock
-        units_to_move = []
-        
-        # Player 1 units move from left to right, so sort them by ascending position
+        # Sort units by their distance from the enemy tower
+        # Player 1 units are sorted by descending position (furthest from enemy tower first)
+        # Player 2 units are sorted by ascending position (furthest from enemy tower first)
         player1_units = [(unit_id, data) for unit_id, data in self.units.items() if data['owner'] == 1]
-        player1_units.sort(key=lambda x: x[1]['position'])
+        player1_units.sort(key=lambda x: x[1]['position'], reverse=True)  # Furthest from enemy tower first
         
-        # Player 2 units move from right to left, so sort them by descending position
         player2_units = [(unit_id, data) for unit_id, data in self.units.items() if data['owner'] == 2]
-        player2_units.sort(key=lambda x: x[1]['position'], reverse=True)
+        player2_units.sort(key=lambda x: x[1]['position'])  # Furthest from enemy tower first
         
         # Combine sorted units
         units_to_move = player1_units + player2_units
