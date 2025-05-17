@@ -7,12 +7,15 @@ import time
 import pyautogui
 import sys
 
-# Initialize Pygame in headless mode for Streamlit - set this BEFORE pygame.init()
+# Initialize Pygame in headless mode for Streamlit - set these BEFORE pygame.init()
 os.environ['SDL_VIDEODRIVER'] = 'dummy'
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'  # Hide pygame welcome message
 
-# Initialize pygame
+# Initialize pygame with minimal display
 try:
+    # Disable actual window creation
+    pygame.display.set_mode = lambda *args, **kwargs: pygame.Surface((800, 600))
+    # Initialize pygame without window
     pygame.init()
 except Exception as e:
     print(f"Pygame initialization error: {e}")
@@ -27,7 +30,7 @@ LANE_WIDTH = 120
 GAME_SPEED = 10.0  # Simulation speed multiplier
 TICK_RATE = 60  # Game logic ticks per second
 FPS = 60 * GAME_SPEED  # Frames per second for rendering
-TOWER_DAMAGE = 30  # Defaul 30
+TOWER_DAMAGE = 30  # Default 30
 
 # Colors
 WHITE = (255, 255, 255)
