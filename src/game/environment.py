@@ -42,6 +42,10 @@ class GameEnvironment:
         }
         
         self.grid[position] = unit_id
+        
+        # Mark the newly spawned unit as moved (can't attack on first turn)
+        self.moved_units.add(unit_id)
+        
         return unit_id
     
     def _is_valid_placement(self, position, player_id):
