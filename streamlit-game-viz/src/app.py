@@ -386,7 +386,7 @@ def run_game_simulation():
         with col2:
             if st.button("New Game"):
                 reset_game()
-                st.experimental_rerun()
+                st.rerun()
         
         # Add analyze button if a replay was saved
         if 'last_replay_path' in st.session_state:
