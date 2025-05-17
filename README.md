@@ -1,49 +1,36 @@
-# Clash Royale Prototype
+# HIHIHIHAI
 
-A simplified Clash Royale-inspired prototype designed to generate game replays. This project implements a 1D grid-based game with towers, character cards, and an elixir system.
+AI-powered tips for Clash Royale from reinforcement learning and public information.
 
 ## Features
 
-- 1×18 grid gameplay with towers at each end
-- Character cards with Attack, HP, Cost, and Range attributes
-- Elixir-based resource management system (1/3 elixir per turn)
-- AI opponents with configurable difficulty
+- Single-lane Clash Royale gameplay simulation with interactive controls
+- Four troop types with unique stats: Knight, Archer, Giant, and Goblin
+- Elixir-based resource management system
+- AI opponent with automated decision-making
 - Comprehensive replay recording system
+- AI coaching that analyzes your gameplay and provides personalized tips
+- Beautiful visualization of game state, troops, and towers
 
-## Game Rules
+## Game Controls
 
-- **Card Distribution**: Decks are randomly generated and shuffled for fair distribution
-- **Card Usage**: Cards can be reused (they return to hand after being played)
-- **Unit Limit**: Each player can have up to 3 units on the field at once
-- **Card Placement**: Players can only place units 1-2 spaces from their tower
-- **Movement & Combat**:
-  - Units can either move OR attack in a turn, not both
-  - Units that move cannot attack until the next turn
-  - When there's a 1-cell gap between opposing units, the unit with higher HP moves forward
-  - No friendly fire (units only attack enemy units)
-  - Units can attack from a distance based on their range attribute
-- **Card Restrictions**: Players cannot play the same card twice in a row
-- **Turn Phases**:
-  1. Movement Phase: All units move first
-  2. Placement Phase: Players can place new units
-  3. Attack Phase: Units that didn't move can attack
+- **Deploy Troops**: Select a troop type and click the Deploy button
+- **AI Toggle**: Enable/disable AI control for the player
+- **Game Speed**: Adjust simulation speed with the slider
+- **Restart**: Reset the game at any time
+- **Replay Analysis**: Save and analyze your gameplay after a match
 
 ## Project Structure
 
 ```
-clash-royale-prototype/
-├── src/                  # Source code
-│   ├── game/             # Core game mechanics
-│   │   ├── card.py       # Card definitions and deck management
-│   │   ├── environment.py # Game grid and core mechanics
-│   │   └── player.py     # Player and AI logic
-│   ├── replay/           # Replay recording and loading
-│   │   └── recorder.py   # Replay recording functionality
-│   └── visualize_game.py # Game visualization
-├── replays/              # Saved game replays
-├── main.py              # Main script for running games and recording replays
-├── visualize.py         # Script for game visualization
-└── README.md            # This file
+supercell-hackathon-2025/
+├── streamlit-game-viz/       # Streamlit application
+│   ├── src/                  # Source code
+│   │   ├── app.py            # Main Streamlit application
+│   │   └── alternative_simulation.py  # Game simulation logic
+├── formula.py                # AI analysis of replays
+├── replays/                  # Saved game replays
+└── requirements.txt          # Project dependencies
 ```
 
 ## Getting Started
@@ -52,125 +39,61 @@ clash-royale-prototype/
 
 - Python 3.7 or higher
 - Required Python packages (install with `pip install -r requirements.txt`):
+  - streamlit
+  - matplotlib
   - numpy
-  - matplotlib (optional, for graphical visualization)
+  - pandas
+  - pygame
+  - requests
 
 ### Installation
 
 1. Clone this repository
-2. Create the necessary directories:
+2. Install dependencies:
    ```
-   mkdir -p src/game src/replay replays
-   ```
-3. Install dependencies:
-   ```
-   pip install numpy matplotlib
+   pip install -r requirements.txt
    ```
 
-## Usage
+### Running Locally
 
-The prototype provides two main ways to run games:
-
-### 1. Visualized Gameplay
-
-Run a game with real-time visualization:
+Start the Streamlit application:
 ```bash
-python visualize.py [options]
+cd streamlit-game-viz
+streamlit run src/app.py
 ```
 
-Options:
-- `--player1`: Type of player 1 (human or ai, default: ai)
-- `--player2`: Type of player 2 (human or ai, default: ai)
-- `--delay`: Delay between turns in seconds (default: 2.0)
-- `--turns`: Maximum number of turns (default: 100)
-- `--difficulty`: AI difficulty level (1: Easy, 2: Medium, 3: Hard, default: 1)
-- `--ascii-only`: Use only ASCII visualization
-- `--plot-only`: Use only graphical (matplotlib) visualization
-- `--both`: Use both ASCII and graphical visualization (default)
-- `--seed`: Random seed for reproducibility (optional)
+## How to Play
 
-Examples:
-```bash
-# Run with both ASCII and graphical visualization
-python visualize.py --both --delay 1.0
+1. **Select a Troop**: Choose from Knight, Archer, Giant, or Goblin in the sidebar
+2. **Deploy**: Click the "Deploy" button to place your selected troop
+3. **Manage Elixir**: Each troop costs different amounts of elixir, which regenerates over time
+4. **Destroy the Enemy Tower**: Guide your troops to attack and destroy the enemy tower
+5. **Defend Your Tower**: Prevent enemy troops from destroying your tower
 
-# Run with only ASCII visualization and a specific seed
-python visualize.py --ascii-only --difficulty 2 --seed 42
+## AI Coaching Features
 
-# Run with only graphical visualization and a specific seed
-python visualize.py --plot-only --player1 human --seed 123
-```
+After each game, you can:
 
-### 2. Replay Recording
+1. **Save Replay**: Record your gameplay for later analysis
+2. **Analyze Last Game**: Get AI-powered insights about your performance
+3. **View Enemy Card Performance**: See which enemy cards were most effective against you
+4. **Get Personalized Tips**: Receive strategic advice to improve your gameplay
 
-Run games and record replays using the main script:
-```bash
-python src/main.py [command] [options]
-```
+The AI coach identifies:
+- Which enemy troops you struggled against the most
+- Provides personalized tips based on your performance
+- Offers specific countering strategies
 
-Commands:
-- `play`: Run a single game and record it
-- `batch`: Generate multiple game replays
+## Deployment
 
-Options for `play` command:
-- `--player1`: Type of player 1 (human or ai, default: ai)
-- `--player2`: Type of player 2 (human or ai, default: ai)
-- `--turns`: Maximum number of turns (default: 100)
-- `--difficulty`: AI difficulty level (1: Easy, 2: Medium, 3: Hard, default: 2)
-- `--seed`: Random seed for reproducibility (optional)
+The application can be deployed to Streamlit Community Cloud:
 
-Options for `batch` command:
-- `--count`: Number of replays to generate (default: 10)
-- `--player1`: Type of player 1 (human or ai, default: ai)
-- `--player2`: Type of player 2 (human or ai, default: ai)
-- `--turns`: Maximum number of turns (default: 100)
-- `--difficulty`: AI difficulty level (1: Easy, 2: Medium, 3: Hard, default: 2)
-
-Examples:
-```bash
-# Generate a single replay
-python src/main.py play --player1 ai --player2 ai --difficulty 2
-
-# Generate a replay with a specific seed
-python src/main.py play --seed 42 --difficulty 2
-
-# Generate 10 replays with different random seeds
-python src/main.py batch --count 10 --difficulty 2
-
-# Generate 50 replays with custom settings
-python src/main.py batch --count 50 --player1 ai --player2 ai --turns 200 --difficulty 3
-```
-
-Each replay is saved as a JSON file in the `replays` directory and includes:
-- Game metadata (player types, difficulty, card distributions, seed)
-- Complete game state history
-- Unit information (card names, stats, positions, ranges)
-- Turn-by-turn actions and outcomes
-
-## Visualization Modes
-
-The game can be visualized in two ways:
-
-1. **ASCII Mode** (default):
-   - Shows the game grid using ASCII characters
-   - Displays unit status (moved/ready)
-   - Shows last played cards for each player
-   - Updates in real-time in the terminal
-
-2. **Matplotlib Mode** (optional):
-   - Provides a graphical visualization
-   - Shows unit positions, health, and attack ranges
-   - Displays game statistics
-   - Updates in a separate window
-
-## Extending the Prototype
-
-To add new card types, edit the `create_sample_cards` function in `src/game/card.py`. Each card needs:
-- Name
-- Attack value
-- HP (hit points)
-- Cost (elixir)
-- Range (attack range in grid cells)
+1. Push your code to GitHub
+2. Go to [share.streamlit.io](https://share.streamlit.io/)
+3. Connect your GitHub repository
+4. Configure settings:
+   - Main file path: `streamlit-game-viz/src/app.py`
+   - Python version: 3.9+
 
 ## License
 
