@@ -1,0 +1,40 @@
+{
+    "troops": {
+        "Knight":{
+        "max_hp": 600,
+        "attack_damage": 80,
+        "attack_speed": 1.2,
+        "movement_speed": 40,
+        "range": 60,
+        "size": 35,
+        "elixir_cost": 3
+        },
+        "Archer":{
+        "max_hp": 250,
+        "attack_damage": 50,
+        "attack_speed": 1.8,
+        "movement_speed": 60,
+        "range": 200,
+        "size": 30,
+        "elixir_cost": 2
+        },
+        "Giant":{
+        "max_hp": 1200,
+        "attack_damage": 120,
+        "attack_speed": 0.8,
+        "movement_speed": 30,
+        "range": 70,
+        "size": 450,
+        "elixir_cost": 5
+        },
+        "Goblin":{
+        "max_hp": 150,
+        "attack_damage": 35,
+        "attack_speed": 2.0,
+        "movement_speed": 80,
+        "range": 40,
+        "size": 25,
+        "elixir_cost": 1
+        }
+    }
+}
