@@ -39,7 +39,7 @@ class GameVisualizer:
         
         if use_matplotlib:
             plt.ion()  # Turn on interactive mode
-            self.fig, self.ax = plt.subplots(figsize=(12, 4))
+            self.fig, self.ax = plt.subplots(figsize=(18, 4))  # Wider figure for 18x1 grid
             self.setup_plot()
     
     def setup_plot(self):
@@ -47,10 +47,10 @@ class GameVisualizer:
         if not self.use_matplotlib:
             return
             
-        self.ax.set_xlim(-0.5, 9.5)
+        self.ax.set_xlim(-0.5, 17.5)  # Updated for 18x1 grid
         self.ax.set_ylim(-0.5, 1.5)
         self.ax.set_yticks([])
-        self.ax.set_xticks(range(10))
+        self.ax.set_xticks(range(18))  # Updated for 18x1 grid
         self.ax.set_title('Clash Royale Prototype - Game Flow')
         self.ax.grid(True, alpha=0.3)
     
@@ -137,7 +137,7 @@ class GameVisualizer:
         print(" |")
         print("|", end="")
         for i in range(game_env.grid_size):
-            print(f" {i:1d}", end=" ")
+            print(f"{i:2d}", end=" ")
         print("|")
         print("+" + "-" * (game_env.grid_size * 3 - 1) + "+")
         print()
@@ -150,7 +150,7 @@ class GameVisualizer:
             position = unit_data['position']
             moved = unit_id in game_env.moved_units
             status = "MOVED (can't attack)" if moved else "READY"
-            print(f"  Player {owner} - {card.name} at position {position}: HP={card.hp}, ATK={card.attack} - {status}")
+            print(f"  Player {owner} - {card.name} at position {position}: HP={card.hp}, ATK={card.attack}, Range={card.range} - {status}")
         
         # Print game status
         if game_env.game_over:
@@ -159,6 +159,7 @@ class GameVisualizer:
         print("\nPress Ctrl+C to exit the visualization")
         print("Note: Units that moved this turn (🔷/🔶) cannot attack until next turn")
         print("Note: Players cannot play the same card twice in a row")
+        print("Note: Units can attack any enemy within their range")
     
     def _visualize_matplotlib(self, game_env, player1, player2):
         """
@@ -210,35 +211,46 @@ class GameVisualizer:
                 
                 # Add unit details
                 if card:
-                    self.ax.text(i, 0.5, f"{card.hp}", ha='center', va='center', color='white', fontweight='bold')
+                    # Show range as a semi-transparent circle
+                    range_circle = plt.Circle((i, 0.5), card.range, fill=True, 
+                                           color=color, alpha=0.1)
+                    self.ax.add_patch(range_circle)
+                    
+                    # Add unit stats
+                    self.ax.text(i, 0.5, f"{card.hp}", ha='center', va='center', 
+                               color='white', fontweight='bold')
+                    self.ax.text(i, 0.2, f"R{card.range}", ha='center', va='center',
+                               color='black', fontsize=8)
         
         # Count units for each player
         p1_units = sum(1 for unit in game_env.units.values() if unit['owner'] == 1)
         p2_units = sum(1 for unit in game_env.units.values() if unit['owner'] == 2)
         
         # Add player info
-        self.ax.text(0.5, 1.2, f"Turn: {game_env.turn_count}", ha='center', va='center', fontsize=12)
-        self.ax.text(0.5, 1.1, f"Player 1: {player1.elixir}/{player1.max_elixir} elixir, {p1_units}/{player1.max_units} units", 
+        self.ax.text(1, 1.2, f"Turn: {game_env.turn_count}", ha='center', va='center', fontsize=12)
+        self.ax.text(1, 1.1, f"Player 1: {player1.elixir}/{player1.max_elixir} elixir, {p1_units}/{player1.max_units} units", 
                   ha='center', va='center', color='blue')
-        self.ax.text(9.5, 1.1, f"Player 2: {player2.elixir}/{player2.max_elixir} elixir, {p2_units}/{player2.max_units} units", 
+        self.ax.text(17, 1.1, f"Player 2: {player2.elixir}/{player2.max_elixir} elixir, {p2_units}/{player2.max_units} units", 
                   ha='center', va='center', color='red')
         
         # Show last played cards
         p1_last_card = player1.last_played_card.name if player1.last_played_card else "None"
         p2_last_card = player2.last_played_card.name if player2.last_played_card else "None"
         
-        self.ax.text(0.5, 1.0, f"Player 1 last played: {p1_last_card}", ha='center', va='center', color='blue', fontsize=9)
-        self.ax.text(9.5, 1.0, f"Player 2 last played: {p2_last_card}", ha='center', va='center', color='red', fontsize=9)
+        self.ax.text(1, 1.0, f"Player 1 last played: {p1_last_card}", ha='center', va='center', color='blue', fontsize=9)
+        self.ax.text(17, 1.0, f"Player 2 last played: {p2_last_card}", ha='center', va='center', color='red', fontsize=9)
         
         # Legend for moved units and card restrictions
-        self.ax.text(5, 1.2, "Note: Faded units with dashed borders have moved and can't attack", 
+        self.ax.text(9, 1.2, "Note: Faded units with dashed borders have moved and can't attack", 
                  ha='center', va='center', fontsize=10, color='black')
-        self.ax.text(5, 1.1, "Note: Players cannot play the same card twice in a row", 
+        self.ax.text(9, 1.1, "Note: Players cannot play the same card twice in a row", 
+                 ha='center', va='center', fontsize=10, color='black')
+        self.ax.text(9, 1.0, "Note: Colored circles show unit attack ranges", 
                  ha='center', va='center', fontsize=10, color='black')
         
         # Add game over message if applicable
         if game_env.game_over:
-            self.ax.text(5, 0.5, f"GAME OVER! Player {game_env.winner} wins!", 
+            self.ax.text(9, 0.5, f"GAME OVER! Player {game_env.winner} wins!", 
                      ha='center', va='center', fontsize=16, color='green',
                      bbox=dict(facecolor='white', alpha=0.8))
         
@@ -267,7 +279,7 @@ def run_visualization(player1_type="ai", player2_type="ai", delay=2.0, turns=100
         use_matplotlib: Whether to use matplotlib visualization
     """
     # Initialize game environment
-    game_env = GameEnvironment(grid_size=10)
+    game_env = GameEnvironment(grid_size=18)
     
     # Create card decks for players
     sample_cards = create_sample_cards()
