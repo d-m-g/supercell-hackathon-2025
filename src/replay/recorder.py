@@ -33,19 +33,23 @@ class ReplayRecorder:
         """Add metadata to the replay."""
         self.metadata[key] = value
     
-    def save(self, filename=None):
+    def save(self, filename=None, batch_index=None):
         """
         Save the replay to a file.
         
         Args:
             filename: Custom filename, if None a timestamp-based name will be generated
+            batch_index: Optional index for batch-generated replays
             
         Returns:
             The path to the saved replay file
         """
         if not filename:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"replay_{timestamp}.json"
+            if batch_index is not None:
+                filename = f"replay_{timestamp}_batch{batch_index:03d}.json"
+            else:
+                filename = f"replay_{timestamp}.json"
         
         # Add end time to metadata
         self.metadata["end_time"] = time.time()
@@ -55,6 +59,10 @@ class ReplayRecorder:
         # Add game result to metadata
         if self.states and self.states[-1]["game_over"]:
             self.metadata["winner"] = self.states[-1]["winner"]
+        
+        # Add batch index to metadata if provided
+        if batch_index is not None:
+            self.metadata["batch_index"] = batch_index
         
         # Prepare final replay data
         replay_data = {
