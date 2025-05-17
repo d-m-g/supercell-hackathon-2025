@@ -6,6 +6,7 @@ import json
 import random
 import numpy as np
 import matplotlib.pyplot as plt
+import subprocess
 from matplotlib.patches import Rectangle, Circle
 from pathlib import Path
 
@@ -13,17 +14,32 @@ from pathlib import Path
 plt.rcParams['figure.dpi'] = 72
 plt.rcParams['savefig.dpi'] = 72
 
-# Modify the import path to use the local version in src directory
+# Fix import paths to ensure we use the local alternative_simulation.py
 current_dir = os.path.dirname(os.path.abspath(__file__))
-if current_dir not in sys.path:
-    sys.path.insert(0, current_dir)
+project_root = os.path.abspath(os.path.join(current_dir, "../.."))
+
+# IMPORTANT: Insert current_dir at the beginning of sys.path to prioritize it
+sys.path.insert(0, current_dir)
 
 # Import elements from alternative_simulation we'll need
 try:
+    # Add explicit relative import to ensure we use the local version
+    import alternative_simulation
     from alternative_simulation import Tower, Troop, Player, GameState
 except ImportError as e:
     st.error(f"Failed to import required modules: {e}")
+    st.info(f"Attempting to import from: {current_dir}")
     st.info("Make sure alternative_simulation.py is in the correct directory")
+
+# Import the analysis function from formula.py after importing alternative_simulation
+try:
+    # Only add project_root after alternative_simulation is imported
+    sys.path.append(project_root)
+    from formula import analyze_replay
+except ImportError:
+    # Create a wrapper function if import fails
+    def analyze_replay(replay_path):
+        return None, "Could not import analysis module"
 
 class StreamlitVisualizer:
     def __init__(self):
@@ -197,6 +213,40 @@ def reset_game():
     # Clear any figures
     plt.close('all')
 
+def analyze_last_game():
+    """Analyze the last replay using formula.py and return the results"""
+    replay_dir = os.path.join(project_root, "replays")
+    if not os.path.exists(replay_dir):
+        return None, "No replays directory found"
+    
+    # Find the most recent replay file
+    replay_files = [f for f in os.listdir(replay_dir) if f.endswith('.json')]
+    if not replay_files:
+        return None, "No replay files found"
+    
+    # Sort by modification time (newest first)
+    replay_files.sort(key=lambda x: os.path.getmtime(os.path.join(replay_dir, x)), reverse=True)
+    latest_replay = os.path.join(replay_dir, replay_files[0])
+    
+    try:
+        # Try to run the analysis directly by importing the function
+        troop_performance = analyze_replay(latest_replay)
+        return troop_performance, None
+    except Exception as e:
+        # Fallback: Run as subprocess
+        try:
+            result = subprocess.run(
+                [sys.executable, os.path.join(project_root, "formula.py"), latest_replay],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            return result.stdout, None
+        except subprocess.CalledProcessError as e:
+            return None, f"Analysis failed: {e.stderr}"
+        except Exception as e:
+            return None, f"Error: {str(e)}"
+
 def run_game_simulation():
     """Run the game simulation with Streamlit integration"""
     # Initialize session state if it doesn't exist
@@ -324,13 +374,58 @@ def run_game_simulation():
     if st.session_state.game_state.game_over:
         st.header(f"Game Over - {'Player' if st.session_state.game_state.winner == 'player' else 'Enemy'} Wins!")
         
-        if st.button("Save Replay"):
-            replay_path = st.session_state.game_state.save_replay()
-            st.success(f"Replay saved to {replay_path}")
+        col1, col2 = st.columns(2)
         
-        if st.button("New Game"):
-            reset_game()
-            st.experimental_rerun()
+        with col1:
+            if st.button("Save Replay"):
+                replay_path = st.session_state.game_state.save_replay()
+                st.session_state.last_replay_path = replay_path
+                st.success(f"Replay saved to {replay_path}")
+                
+        with col2:
+            if st.button("New Game"):
+                reset_game()
+                st.experimental_rerun()
+        
+        # Add analyze button if a replay was saved
+        if 'last_replay_path' in st.session_state:
+            if st.button("Analyze Last Game"):
+                with st.spinner("Analyzing game data..."):
+                    performance, error = analyze_last_game()
+                    
+                    if error:
+                        st.error(error)
+                    else:
+                        st.subheader("Troop Performance Analysis")
+                        
+                        if isinstance(performance, dict):
+                            # Create a dataframe for better display
+                            import pandas as pd
+                            df = pd.DataFrame(performance.items(), columns=['Troop', 'Performance'])
+                            df = df.sort_values('Performance', ascending=False)
+                            
+                            # Show as table
+                            st.table(df)
+                            
+                            # Show as bar chart
+                            fig, ax = plt.subplots(figsize=(8, 4))
+                            bars = ax.bar(df['Troop'], df['Performance'])
+                            
+                            # Color the bars (green for positive, red for negative)
+                            for i, bar in enumerate(bars):
+                                if df['Performance'].iloc[i] > 0:
+                                    bar.set_color('green')
+                                else:
+                                    bar.set_color('red')
+                                    
+                            ax.set_title("Troop Performance Analysis")
+                            ax.set_ylabel("Performance Score")
+                            plt.tight_layout()
+                            
+                            st.pyplot(fig)
+                        else:
+                            # If string output from subprocess
+                            st.text(performance)
     
     # Auto-refresh to update game state
     if not st.session_state.game_state.game_over:
