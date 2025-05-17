@@ -1,4 +1,5 @@
 import random
+from .card import Card  # Import Card class for state restoration
 
 class GameEnvironment:
     """
@@ -344,4 +345,56 @@ class GameEnvironment:
             'attacks': self.current_attacks.copy(),  # Include attack information
             'game_over': self.game_over,
             'winner': self.winner
-        } 
+        }
+
+    def _set_state(self, state):
+        """
+        Restore a game state from replay data.
+        
+        Args:
+            state: Game state dictionary from _get_state()
+        """
+        # Reset the environment
+        self.grid = [0] * self.grid_size
+        self.grid[0] = 'T1'  # Player 1's tower
+        self.grid[-1] = 'T2'  # Player 2's tower
+        self.units = {}
+        self.next_unit_id = 1
+        self.moved_units = set()
+        self.current_attacks = []
+        
+        # Restore turn count and game state
+        self.turn_count = state['turn']
+        self.game_over = state['game_over']
+        self.winner = state['winner']
+        
+        # Restore units
+        for unit_id, unit_data in state['units'].items():
+            # Create a new card instance with the saved attributes
+            card = Card(
+                name=unit_data['card_name'],
+                cost=unit_data['card_cost'],
+                hp=unit_data['hp'],
+                attack=unit_data['attack'],
+                range=unit_data['range']
+            )
+            
+            # Add unit to the environment
+            self.units[int(unit_id)] = {
+                'position': unit_data['position'],
+                'card': card,
+                'owner': unit_data['owner']
+            }
+            
+            # Update grid
+            self.grid[unit_data['position']] = int(unit_id)
+            
+            # Update next_unit_id
+            self.next_unit_id = max(self.next_unit_id, int(unit_id) + 1)
+            
+            # Add to moved_units if the unit moved this turn
+            if unit_data['moved_this_turn']:
+                self.moved_units.add(int(unit_id))
+        
+        # Restore current attacks
+        self.current_attacks = state['attacks'].copy() 
