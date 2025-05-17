@@ -2,162 +2,287 @@ import streamlit as st
 import sys
 import os
 import time
+import json
+import random
+import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle, Circle
+from pathlib import Path
 
-# Add the project root to PYTHONPATH
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
+# Modify the import path to use the local version in src directory
+current_dir = os.path.dirname(os.path.abspath(__file__))
+if current_dir not in sys.path:
+    sys.path.insert(0, current_dir)
 
-# Now we can import from the src directory
+# Import elements from alternative_simulation we'll need
 try:
-    from src.visualize_game import GameVisualizer
-    from src.game.environment import GameEnvironment
-    from src.game.player import AIPlayer
-    from src.game.card import create_sample_cards
+    from alternative_simulation import Tower, Troop, Player, GameState
 except ImportError as e:
     st.error(f"Failed to import required modules: {e}")
-    st.info("Make sure you are running Streamlit from the correct directory")
+    st.info("Make sure alternative_simulation.py is in the correct directory")
+
+class StreamlitVisualizer:
+    def __init__(self):
+        self.colors = {
+            'player': 'blue',
+            'enemy': 'red',
+            'background': '#f0f0f0',
+            'lane': '#d0d0d0',
+            'elixir': 'purple'
+        }
+        
+        # Constants taken from original game
+        self.SCREEN_WIDTH = 800
+        self.SCREEN_HEIGHT = 600
+        self.LANE_WIDTH = 120
+        self.PLAYER_ELIXIR_MAX = 10
+        
+    def visualize_game_state(self, game_state):
+        """Visualize the current game state using matplotlib"""
+        fig, ax = plt.subplots(figsize=(10, 7.5))
+        
+        # Set background
+        ax.set_facecolor(self.colors['background'])
+        ax.set_xlim(0, self.SCREEN_WIDTH)
+        ax.set_ylim(0, self.SCREEN_HEIGHT)
+        
+        # Draw lane
+        lane_rect = Rectangle(
+            ((self.SCREEN_WIDTH - self.LANE_WIDTH) // 2, 0),
+            self.LANE_WIDTH, self.SCREEN_HEIGHT,
+            color=self.colors['lane']
+        )
+        ax.add_patch(lane_rect)
+        
+        # Draw towers
+        for tower in game_state.towers:
+            self._draw_tower(ax, tower)
+        
+        # Draw troops
+        for troop in game_state.troops:
+            self._draw_troop(ax, troop)
+        
+        # Remove axis ticks for cleaner look
+        ax.set_xticks([])
+        ax.set_yticks([])
+        
+        # Add game info as text
+        if game_state.game_over:
+            winner_text = "PLAYER WINS!" if game_state.winner == 'player' else "ENEMY WINS!"
+            ax.text(self.SCREEN_WIDTH//2, self.SCREEN_HEIGHT//2, winner_text, 
+                   fontsize=24, ha='center', va='center',
+                   color=self.colors[game_state.winner],
+                   bbox=dict(facecolor='white', alpha=0.8))
+        
+        return fig
+    
+    def _draw_tower(self, ax, tower):
+        """Draw a tower on the matplotlib axis"""
+        tower_color = self.colors[tower.team]
+        
+        # Draw tower body
+        tower_rect = Rectangle(
+            (tower.position[0] - tower.width // 2, tower.position[1] - tower.height // 2),
+            tower.width, tower.height,
+            color=tower_color
+        )
+        ax.add_patch(tower_rect)
+        
+        # Draw health bar
+        health_ratio = tower.hp / tower.max_hp
+        health_bar_width = tower.width
+        health_bar_height = 10
+        
+        # Health bar background
+        health_bg = Rectangle(
+            (tower.position[0] - health_bar_width // 2, tower.position[1] - tower.height // 2 - 15),
+            health_bar_width, health_bar_height,
+            facecolor='white', edgecolor='black'
+        )
+        ax.add_patch(health_bg)
+        
+        # Health bar fill
+        if health_ratio > 0:
+            health_fill = Rectangle(
+                (tower.position[0] - health_bar_width // 2, tower.position[1] - tower.height // 2 - 15),
+                health_bar_width * health_ratio, health_bar_height,
+                facecolor='green'
+            )
+            ax.add_patch(health_fill)
+        
+        # Add HP text
+        ax.text(tower.position[0], tower.position[1], f"HP: {int(tower.hp)}", 
+                ha='center', va='center', color='black', fontsize=10)
+    
+    def _draw_troop(self, ax, troop):
+        """Draw a troop on the matplotlib axis"""
+        troop_color = self.colors[troop.team]
+        
+        # Draw troop as circle
+        troop_circle = Circle(
+            (troop.position[0], troop.position[1]),
+            troop.size,
+            color=troop_color
+        )
+        ax.add_patch(troop_circle)
+        
+        # Draw health bar
+        health_ratio = troop.hp / troop.max_hp
+        health_bar_width = troop.size * 2
+        health_bar_height = 5
+        
+        # Health bar background
+        health_bg = Rectangle(
+            (troop.position[0] - health_bar_width // 2, troop.position[1] - troop.size - 5),
+            health_bar_width, health_bar_height,
+            facecolor='white', edgecolor='black'
+        )
+        ax.add_patch(health_bg)
+        
+        # Health bar fill
+        if health_ratio > 0:
+            health_fill = Rectangle(
+                (troop.position[0] - health_bar_width // 2, troop.position[1] - troop.size - 5),
+                health_bar_width * health_ratio, health_bar_height,
+                facecolor='green'
+            )
+            ax.add_patch(health_fill)
+        
+        # Add troop type text above
+        ax.text(troop.position[0], troop.position[1] - troop.size - 10, 
+                troop.troop_type, ha='center', va='center', color='black', fontsize=8)
+
+    def draw_elixir_bar(self, player, x_pos, y_pos, width=200, height=20):
+        """Create a matplotlib figure for an elixir bar"""
+        fig, ax = plt.subplots(figsize=(width/50, height/50))
+        
+        # Draw elixir background
+        ax.add_patch(Rectangle((0, 0), width, height, facecolor='white', edgecolor='black'))
+        
+        # Draw elixir fill
+        elixir_ratio = player.elixir / self.PLAYER_ELIXIR_MAX
+        ax.add_patch(Rectangle((0, 0), width * elixir_ratio, height, facecolor=self.colors['elixir']))
+        
+        # Add text
+        ax.text(width/2, height/2, f"Elixir: {int(player.elixir)}/{self.PLAYER_ELIXIR_MAX}", 
+                ha='center', va='center', color='white', fontweight='bold')
+        
+        ax.set_xlim(0, width)
+        ax.set_ylim(0, height)
+        ax.axis('off')
+        
+        return fig
+
+def run_game_simulation():
+    """Run the game simulation with Streamlit integration"""
+    # Initialize session state if it doesn't exist
+    if 'game_state' not in st.session_state:
+        st.session_state.game_state = GameState()
+        st.session_state.visualizer = StreamlitVisualizer()
+        st.session_state.game_tick = 0
+        st.session_state.last_update_time = time.time()
+        st.session_state.game_speed = 1.0
+    
+    # Game speed control
+    st.sidebar.title("Game Controls")
+    game_speed = st.sidebar.slider("Game Speed", min_value=0.1, max_value=5.0, value=st.session_state.game_speed, step=0.1)
+    st.session_state.game_speed = game_speed
+    
+    # Restart button
+    if st.sidebar.button("Restart Game"):
+        st.session_state.game_state = GameState()
+        st.session_state.game_tick = 0
+    
+    # Troop selection for manual deployment (sidebar)
+    st.sidebar.title("Troop Selection")
+    troop_options = ["Knight", "Archer", "Giant", "Goblin"]
+    selected_troop = st.sidebar.selectbox("Select Troop", troop_options, index=0)
+    st.session_state.game_state.selected_troop = selected_troop
+    
+    # Display troop stats
+    st.sidebar.subheader(f"{selected_troop} Stats")
+    
+    # Create a dummy troop to get stats
+    dummy_troop = Troop([0, 0], selected_troop, 'player', 0)
+    
+    st.sidebar.text(f"HP: {dummy_troop.max_hp}")
+    st.sidebar.text(f"Damage: {dummy_troop.attack_damage}")
+    st.sidebar.text(f"Attack Speed: {dummy_troop.attack_speed}")
+    st.sidebar.text(f"Cost: {st.session_state.game_state.get_troop_cost(selected_troop)}")
+    
+    # Update game state
+    current_time = time.time()
+    dt = (current_time - st.session_state.last_update_time) * st.session_state.game_speed
+    
+    # Only update if game is not over
+    if not st.session_state.game_state.game_over:
+        st.session_state.game_state.update(dt / 60.0)  # Convert to seconds and apply game speed
+        st.session_state.game_tick += 1
+        st.session_state.last_update_time = current_time
+    
+    # Visualize current game state
+    fig = st.session_state.visualizer.visualize_game_state(st.session_state.game_state)
+    game_container = st.container()
+    game_container.pyplot(fig)
+    
+    # Display elixir bar
+    elixir_col, _ = st.columns([1, 3])
+    with elixir_col:
+        elixir_fig = st.session_state.visualizer.draw_elixir_bar(
+            st.session_state.game_state.player, 
+            20, 
+            st.session_state.visualizer.SCREEN_HEIGHT - 30
+        )
+        st.pyplot(elixir_fig)
+    
+    # Game status display
+    st.title("Game Status")
+    
+    # Display tower health
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("Player Tower HP", f"{int(st.session_state.game_state.player_tower.hp)}/{st.session_state.game_state.player_tower.max_hp}")
+    with col2:
+        st.metric("Enemy Tower HP", f"{int(st.session_state.game_state.enemy_tower.hp)}/{st.session_state.game_state.enemy_tower.max_hp}")
+    
+    # Troop information
+    st.subheader("Troops on Field")
+    if len(st.session_state.game_state.troops) > 0:
+        troop_data = []
+        for troop in st.session_state.game_state.troops:
+            troop_data.append({
+                "Type": troop.troop_type,
+                "Team": troop.team.capitalize(),
+                "HP": f"{int(troop.hp)}/{troop.max_hp}",
+                "Position": f"({int(troop.position[0])}, {int(troop.position[1])})"
+            })
+        st.table(troop_data)
+    else:
+        st.info("No troops on the field")
+    
+    # Display replay save option if game is over
+    if st.session_state.game_state.game_over:
+        st.header(f"Game Over - {'Player' if st.session_state.game_state.winner == 'player' else 'Enemy'} Wins!")
+        
+        if st.button("Save Replay"):
+            replay_path = st.session_state.game_state.save_replay()
+            st.success(f"Replay saved to {replay_path}")
+    
+    # Auto-refresh to update game state
+    if not st.session_state.game_state.game_over:
+        time.sleep(0.1)  # Small delay to prevent too many refreshes
+        st.rerun()
 
 def main():
-    st.title("Clash Royale Prototype Visualization")
-
-    # Sidebar controls
-    st.sidebar.header("Game Settings")
+    st.set_page_config(
+        page_title="Clash Royale Simulation",
+        page_icon="🏰",
+        layout="wide"
+    )
     
-    # Player settings
-    st.sidebar.subheader("Player Configuration")
-    settings = {
-        "player1_type": st.sidebar.selectbox(
-            "Player 1", 
-            ["ai", "human"], 
-            index=0,
-            help="Type of player 1 (AI or Human)"
-        ),
-        "player2_type": st.sidebar.selectbox(
-            "Player 2", 
-            ["ai", "human"], 
-            index=0,
-            help="Type of player 2 (AI or Human)"
-        ),
-        "difficulty": st.sidebar.selectbox(
-            "AI Difficulty", 
-            [1, 2, 3], 
-            index=0,
-            help="Difficulty level for AI players (1: Easy, 2: Medium, 3: Hard)"
-        ),
-    }
+    st.title("Clash Royale Single Lane Simulation")
     
-    # Visualization settings
-    st.sidebar.subheader("Visualization Settings")
-    settings.update({
-        "delay": st.sidebar.slider(
-            "Visualization Delay", 
-            0.1, 5.0, 2.0,
-            help="Delay between turns in seconds"
-        ),
-        "turns": st.sidebar.number_input(
-            "Max Turns", 
-            min_value=10, 
-            max_value=1000, 
-            value=100,
-            help="Maximum number of turns before game ends"
-        ),
-        "use_ascii": False,  # We'll use Streamlit's visualization instead
-        "use_matplotlib": True
-    })
-
-    # Initialize or get session state
-    if 'game_started' not in st.session_state:
-        st.session_state.game_started = False
-        st.session_state.game_env = None
-        st.session_state.visualizer = None
-        st.session_state.turn = 0
-
-    # Start/Reset button
-    if st.sidebar.button("Start/Reset Game"):
-        # Initialize new game
-        game_env = GameEnvironment()
-        cards = create_sample_cards()
-        
-        # Create players
-        player1 = AIPlayer(1, difficulty=settings["difficulty"])
-        player2 = AIPlayer(2, difficulty=settings["difficulty"])
-        player1.initialize_deck(cards)
-        player2.initialize_deck(cards)
-        
-        # Create visualizer
-        visualizer = GameVisualizer(
-            game_env=game_env,
-            use_ascii=False,
-            use_matplotlib=True,
-            delay=settings["delay"],
-            streamlit_mode=True
-        )
-        
-        st.session_state.game_started = True
-        st.session_state.game_env = game_env
-        st.session_state.player1 = player1
-        st.session_state.player2 = player2
-        st.session_state.visualizer = visualizer
-        st.session_state.turn = 0
-    
-    # Display game state
-    if st.session_state.game_started:
-        # Game stats in a more organized layout
-        st.subheader("Game Statistics")
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            st.metric("Turn", st.session_state.turn)
-        with col2:
-            if st.session_state.game_env is not None:
-                p1_units = len([u for u in st.session_state.game_env.units.values() if u['owner'] == 1])
-                st.metric("Player 1 Units", p1_units)
-        with col3:
-            if st.session_state.game_env is not None:
-                p2_units = len([u for u in st.session_state.game_env.units.values() if u['owner'] == 2])
-                st.metric("Player 2 Units", p2_units)
-
-        # Display current scores
-        if st.session_state.game_env:
-            if hasattr(st.session_state.game_env, 'calculate_scores'):
-                scores = st.session_state.game_env.calculate_scores()
-                st.info(f"Current Score - Player 1: {scores[1]}, Player 2: {scores[2]}")
-        
-        # Update game state
-        if st.session_state.game_env and not st.session_state.game_env.game_over:
-            # Execute one turn
-            st.session_state.player1.take_turn(st.session_state.game_env)
-            st.session_state.player2.take_turn(st.session_state.game_env)
-            st.session_state.game_env.update()
-            st.session_state.turn += 1
-            
-            # Visualize current state
-            st.session_state.visualizer.visualize_state(
-                st.session_state.game_env,
-                st.session_state.player1,
-                st.session_state.player2
-            )
-            
-            # Display matplotlib plot in Streamlit
-            fig = plt.gcf()
-            st.pyplot(fig)
-            plt.close()
-            
-            # Check for game over
-            if st.session_state.turn >= settings["turns"]:
-                st.session_state.game_env.game_over = True
-                if hasattr(st.session_state.game_env, 'calculate_scores'):
-                    final_scores = st.session_state.game_env.calculate_scores()
-                    winner = 1 if final_scores[1] > final_scores[2] else 2
-                    st.success(f"Game Over! Player {winner} wins with score {max(final_scores.values())}!")
-            else:
-                # Auto-rerun for next turn if not game over
-                time.sleep(settings["delay"])
-                st.rerun()
-        elif st.session_state.game_env and st.session_state.game_env.game_over:
-            st.warning("Game Over! Click Start/Reset to begin a new game.")
+    run_game_simulation()
 
 if __name__ == "__main__":
     main()
