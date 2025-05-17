@@ -27,19 +27,16 @@ class Player:
             if self.next_card_index >= len(self.deck):
                 self.next_card_index = 0
     
-    def generate_elixir(self, amount=1/3):
+    def generate_elixir(self, amount=1/2):
         """
         Generate elixir for the player (called each turn).
-        Now generates 1/3 elixir per turn, accumulating until a full elixir is generated.
+        Now generates 1/2 elixir per turn, accumulating until a full elixir is generated.
         """
         self.elixir_counter += amount
         if self.elixir_counter >= 1:
             # Generate a full elixir and reset the counter
             self.elixir = min(self.elixir + 1, self.max_elixir)
             self.elixir_counter = 0
-        
-        # Reset last played card at the start of a new turn
-        self.last_played_card = None
     
     def can_play_card(self, hand_index, game_env):
         """
@@ -98,8 +95,9 @@ class Player:
             # Instead, we reset it so it can be used again
             card.reset()
             
-            # Record this as the last played card
-            self.last_played_card = card
+            # Only update last_played_card if a different card was played
+            if self.last_played_card is None or card.name != self.last_played_card.name:
+                self.last_played_card = card
             
             return unit_id
         

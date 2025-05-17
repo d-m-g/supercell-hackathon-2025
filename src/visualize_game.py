@@ -86,6 +86,19 @@ class GameVisualizer:
         # Print turn information
         print(f"Turn: {game_env.turn_count}")
         
+        # Print player decks
+        print("\nPlayer 1 Deck:")
+        for i, card in enumerate(player1.deck):
+            status = "IN HAND" if card in player1.hand else "in deck"
+            print(f"  {i+1}. {card.name}: ATK={card.attack}, HP={card.hp}, Cost={card.cost}, Range={card.range} - {status}")
+        
+        print("\nPlayer 2 Deck:")
+        for i, card in enumerate(player2.deck):
+            status = "IN HAND" if card in player2.hand else "in deck"
+            print(f"  {i+1}. {card.name}: ATK={card.attack}, HP={card.hp}, Cost={card.cost}, Range={card.range} - {status}")
+        
+        print("\n" + "="*50 + "\n")  # Separator line
+        
         # Count units for each player
         p1_units = sum(1 for unit in game_env.units.values() if unit['owner'] == 1)
         p2_units = sum(1 for unit in game_env.units.values() if unit['owner'] == 2)
@@ -226,26 +239,53 @@ class GameVisualizer:
         p1_units = sum(1 for unit in game_env.units.values() if unit['owner'] == 1)
         p2_units = sum(1 for unit in game_env.units.values() if unit['owner'] == 2)
         
-        # Add player info
+        # Add player info and decks
+        # Player 1 info (left side)
         self.ax.text(1, 1.2, f"Turn: {game_env.turn_count}", ha='center', va='center', fontsize=12)
         self.ax.text(1, 1.1, f"Player 1: {player1.elixir}/{player1.max_elixir} elixir, {p1_units}/{player1.max_units} units", 
                   ha='center', va='center', color='blue')
+        
+        # Player 1 deck
+        deck_y = 1.0
+        self.ax.text(1, deck_y, "Player 1 Deck:", ha='center', va='center', color='blue', fontsize=9, fontweight='bold')
+        for i, card in enumerate(player1.deck):
+            status = "IN HAND" if card in player1.hand else "in deck"
+            card_text = f"{card.name} (ATK:{card.attack}, HP:{card.hp}, Cost:{card.cost}, R:{card.range}) - {status}"
+            self.ax.text(1, deck_y - 0.1 * (i + 1), card_text, ha='center', va='center', 
+                      color='blue', fontsize=8, alpha=1.0 if card in player1.hand else 0.6)
+        
+        # Player 2 info (right side)
         self.ax.text(17, 1.1, f"Player 2: {player2.elixir}/{player2.max_elixir} elixir, {p2_units}/{player2.max_units} units", 
                   ha='center', va='center', color='red')
+        
+        # Player 2 deck
+        deck_y = 1.0
+        self.ax.text(17, deck_y, "Player 2 Deck:", ha='center', va='center', color='red', fontsize=9, fontweight='bold')
+        for i, card in enumerate(player2.deck):
+            status = "IN HAND" if card in player2.hand else "in deck"
+            card_text = f"{card.name} (ATK:{card.attack}, HP:{card.hp}, Cost:{card.cost}, R:{card.range}) - {status}"
+            self.ax.text(17, deck_y - 0.1 * (i + 1), card_text, ha='center', va='center', 
+                      color='red', fontsize=8, alpha=1.0 if card in player2.hand else 0.6)
         
         # Show last played cards
         p1_last_card = player1.last_played_card.name if player1.last_played_card else "None"
         p2_last_card = player2.last_played_card.name if player2.last_played_card else "None"
         
-        self.ax.text(1, 1.0, f"Player 1 last played: {p1_last_card}", ha='center', va='center', color='blue', fontsize=9)
-        self.ax.text(17, 1.0, f"Player 2 last played: {p2_last_card}", ha='center', va='center', color='red', fontsize=9)
+        # Move last played cards info lower to make room for decks
+        self.ax.text(1, -0.2, f"Player 1 last played: {p1_last_card}", ha='center', va='center', color='blue', fontsize=9)
+        self.ax.text(17, -0.2, f"Player 2 last played: {p2_last_card}", ha='center', va='center', color='red', fontsize=9)
+        
+        # Adjust y-axis limits to accommodate deck information
+        self.ax.set_ylim(-0.5, 1.5 + len(player1.deck) * 0.1)  # Adjust based on deck size
         
         # Legend for moved units and card restrictions
-        self.ax.text(9, 1.2, "Note: Faded units with dashed borders have moved and can't attack", 
+        self.ax.text(9, 1.2 + len(player1.deck) * 0.1, "Note: Faded units with dashed borders have moved and can't attack", 
                  ha='center', va='center', fontsize=10, color='black')
-        self.ax.text(9, 1.1, "Note: Players cannot play the same card twice in a row", 
+        self.ax.text(9, 1.1 + len(player1.deck) * 0.1, "Note: Players cannot play the same card twice in a row", 
                  ha='center', va='center', fontsize=10, color='black')
-        self.ax.text(9, 1.0, "Note: Colored circles show unit attack ranges", 
+        self.ax.text(9, 1.0 + len(player1.deck) * 0.1, "Note: Colored circles show unit attack ranges", 
+                 ha='center', va='center', fontsize=10, color='black')
+        self.ax.text(9, 0.9 + len(player1.deck) * 0.1, "Note: Cards in hand are shown in full opacity, deck cards are faded", 
                  ha='center', va='center', fontsize=10, color='black')
         
         # Add game over message if applicable
@@ -284,17 +324,18 @@ def run_visualization(player1_type="ai", player2_type="ai", delay=2.0, turns=100
     # Create card decks for players
     sample_cards = create_sample_cards()
     
-    # # Shuffle the cards for fair distribution
-    # random.shuffle(sample_cards)
+    # Shuffle the cards for fair distribution
+    random.shuffle(sample_cards)
     
-    # # Split cards evenly between players after shuffling
-    # half = len(sample_cards) // 2
-    # player1_cards = sample_cards[:half]
-    # player2_cards = sample_cards[half:]
+    # Split cards evenly between players after shuffling
+    half = len(sample_cards) // 2
+    player1_cards = sample_cards[:half]
+    player2_cards = sample_cards[half:]
 
-    # Custom made deck for testing
-    player1_cards = [sample_cards[4], sample_cards[1], sample_cards[5]]
-    player2_cards = [sample_cards[2], sample_cards[3], sample_cards[0]]
+    # # Custom made deck for testing
+    # player1_cards = [sample_cards[4], sample_cards[1], sample_cards[5]]
+    # player2_cards = [sample_cards[2], sample_cards[3], sample_cards[0]]
+    
     # Ensure both players have cards with a good mix of attributes
     player1_deck = CardDeck(player1_cards)
     player2_deck = CardDeck(player2_cards)
