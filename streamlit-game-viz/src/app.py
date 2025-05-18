@@ -495,7 +495,7 @@ def get_personalized_tips(performance_data, replay_data=None):
         sys.path.append(os.path.abspath(os.path.join(project_root)))
         from use import generate_response, load_fine_tuned_model  # Correct import syntax
         model, tokenizer = load_fine_tuned_model()
-        prompt = "Tips for countering {best_troop.capitalize()}:"
+        prompt = f"Tips for countering {best_troop.capitalize()}:"
         tips = generate_response(model, tokenizer, prompt)
         # tips = f"""
         # Tips for countering {best_troop.capitalize()}:
