@@ -72,17 +72,12 @@ streamlit run src/app.py
 
 ## AI Coaching Features
 
-After each game, you can:
-
-1. **Save Replay**: Record your gameplay for later analysis
-2. **Analyze Last Game**: Get AI-powered insights about your performance
-3. **View Enemy Card Performance**: See which enemy cards were most effective against you
-4. **Get Personalized Tips**: Receive strategic advice to improve your gameplay
+The AI tracks your match history and using game analysis determines, if there is a card you are havin particularly hard time against. If that is the case, it will nudge you towards straategies commonly used byt the community.
 
 The AI coach identifies:
-- Which enemy troops you struggled against the most
-- Provides personalized tips based on your performance
-- Offers specific countering strategies
+- Which enemy troops you struggle against the most
+- If necessary, rovides personalized tips based on your performance
+- IF that's not enough, offers specific countering strategies
 
 ## Deployment
 
