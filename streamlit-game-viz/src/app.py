@@ -492,20 +492,20 @@ def get_personalized_tips(performance_data, replay_data=None):
         # tips = response.json()["response"]
         
         # Simulated response for now
-        sys.path.append(os.path.abspath(os.path.join(project_root)))
-        from use import generate_response, load_fine_tuned_model  # Correct import syntax
-        model, tokenizer = load_fine_tuned_model()
-        prompt = f"Tips for countering {best_troop.capitalize()}:"
-        tips = generate_response(model, tokenizer, prompt)
-        # tips = f"""
-        # Tips for countering {best_troop.capitalize()}:
+        # sys.path.append(os.path.abspath(os.path.join(project_root)))
+        # from use import generate_response, load_fine_tuned_model  # Correct import syntax
+        # model, tokenizer = load_fine_tuned_model()
+        # prompt = f"Tips for countering {best_troop.capitalize()}:"
+        # tips = generate_response(model, tokenizer, prompt)
+        tips = f"""
+        Tips for countering {best_troop.capitalize()}:
         
-        # 1. {best_troop.capitalize()} cards are particularly effective because of their {get_strength(best_troop)}. Try deploying {get_counter(best_troop)} as a counter.
+        1. {best_troop.capitalize()} cards are particularly effective because of their {get_strength(best_troop)}. Try deploying {get_counter(best_troop)} as a counter.
         
-        # 2. Adjust your timing - deploy your troops only after the enemy {best_troop} crosses the river to maximize your elixir efficiency.
+        2. Adjust your timing - deploy your troops only after the enemy {best_troop} crosses the river to maximize your elixir efficiency.
         
-        # 3. If you're struggling with {best_troop} cards, consider adding {get_recommended_card(best_troop)} to your deck as they're particularly effective counters.
-        # """
+        3. If you're struggling with {best_troop} cards, consider adding {get_recommended_card(best_troop)} to your deck as they're particularly effective counters.
+        """
         
         return tips
     except Exception as e:
