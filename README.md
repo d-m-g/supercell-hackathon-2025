@@ -94,6 +94,11 @@ The application can be deployed to Streamlit Community Cloud:
 
 The demo website is currently not running te finetuned QLoRA, since keeping it running constantly for possibly multiple people to use at the same time posed problems. In case you are interested in testing the QLoRA, please clone the repo and run it localy.
 
+When testinting the evaluation:
+- Play multiple games to get sufficien data of the troops. Keep in mind, that the game is very simlified and the results you get might not be very realistic.
+  - You can also make both of the players play random cards and make the game speed multiplier 10 te got data faster.
+- Run the formula.py file to get analysis reslts
+
 ## License
 
 This project is released under the MIT License.
