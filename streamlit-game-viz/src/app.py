@@ -436,8 +436,8 @@ def run_game_simulation():
                                 # Show which card the player struggled against the most
                                 st.markdown(f"**You struggled the most against: {best_card.capitalize()}**")
                                 
-                                # Add tips section if any score is above 0
-                                if df['Performance'].max() > 0:
+                                # Add tips section if any score is above -1
+                                if df['Performance'].max() > -1:
                                     st.subheader("Tips from AI Coach")
                                     
                                     # Get personalized tips from fine-tuned LLM
