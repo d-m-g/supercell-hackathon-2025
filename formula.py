@@ -123,11 +123,17 @@ def main():
     if replays:
         for troop_type in all_performance:
             all_performance[troop_type] /= len(replays)
-    
+    best_troop = max(all_performance.items(), key=lambda x: x[1])[0]
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    sys.path.append(os.path.abspath(os.path.join(project_root)))
+    from use import generate_response, load_fine_tuned_model  # Correct import syntax
+    model, tokenizer = load_fine_tuned_model()
+    prompt = f"Tips for countering {best_troop.capitalize()}: in Clash Royale"
+    tips = generate_response(model, tokenizer, prompt)
     print("Average Troop Performance:")
     for troop_type, performance in all_performance.items():
         print(f"{troop_type}: {performance:.2f}")
-
+    print(f"Tips for countering {best_troop.capitalize()}: {tips}")
 
 if __name__ == "__main__":
     main()
