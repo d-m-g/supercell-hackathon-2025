@@ -77,7 +77,7 @@ The AI tracks your match history and using game analysis determines, if there is
 The AI coach identifies:
 - Which enemy troops you struggle against the most
 - If necessary, rovides personalized tips based on your performance
-- IF that's not enough, offers specific countering strategies
+- If that's not enough, offers specific countering strategies
 
 ## Deployment
 
@@ -89,6 +89,10 @@ The application can be deployed to Streamlit Community Cloud:
 4. Configure settings:
    - Main file path: `streamlit-game-viz/src/app.py`
    - Python version: 3.9+
+
+## Demo
+
+The demo website is currently not running te finetuned QLoRA, since keeping it running constantly for possibly multiple people to use at the same time posed problems. In case you are interested in testing the QLoRA, please clone the repo and run it localy.
 
 ## License
 
